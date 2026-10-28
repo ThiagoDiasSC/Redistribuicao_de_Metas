@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastrar Nova Senha - MEGA GIRO</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../Layout/style.css">
+  <style>
+    .user-target-box {
+      background-color: #e8f5e9;
+      border: 1px solid #c3e6cb;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #0f5132;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .user-target-box strong {
+      color: #006633;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body class="auth-page">
+
+  <main class="card-container">
+    <div class="banner-header">
+      <svg class="banner-logo" viewBox="0 0 400 180" xmlns="http://www.w3.org/2000/svg">
+        <g fill="#ffffff">
+          <text x="10" y="85" font-family="'Arial Black', 'Impact', sans-serif" font-weight="900" font-size="70" letter-spacing="-2">MEGA</text>
+          <text x="180" y="135" font-family="'Arial Black', 'Impact', sans-serif" font-weight="900" font-size="70" letter-spacing="-2">GIRO</text>
+          <text x="185" y="162" font-family="'Segoe UI', Arial, sans-serif" font-weight="700" font-size="19" letter-spacing="0.5">Distribuidor Autorizado</text>
+          <path d="M 330 60 C 310 30, 200 40, 100 100 C 60 124, 50 145, 65 152 C 75 157, 120 145, 170 120" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="card-content">
+      <h2 class="title">Redefinição de Senha</h2>
+      <p class="instructions">Digite e confirme sua nova senha de acesso.</p>
+
+      <!-- Caixa de identificação do usuário em alteração -->
+      <div id="userTargetBox" class="user-target-box" style="display: none;">
+        <i class="fa-solid fa-user-check"></i>
+        <span>Alterando senha da conta: <strong id="userTargetEmail">--</strong></span>
+      </div>
+
+      <form class="reset-form" id="resetForm" onsubmit="handleResetPassword(event)">
+        <div class="form-group">
+          <label for="newPassword">Digite a Nova Senha</label>
+          <div class="input-wrapper">
+            <input type="password" id="newPassword" class="form-input" placeholder="Nova senha" required autocomplete="new-password">
+            <i class="fa-solid fa-lock input-icon"></i>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="confirmPassword">Confirme a Nova Senha</label>
+          <div class="input-wrapper">
+            <input type="password" id="confirmPassword" class="form-input" placeholder="Repita a nova senha" required autocomplete="new-password">
+            <i class="fa-solid fa-lock input-icon"></i>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit" id="btnAlterar">Alterar Senha</button>
+
+        <div id="messageBox" class="message-box"></div>
+      </form>
+
+      <div class="back-link">
+        <a href="../index.html"><i class="fa-solid fa-arrow-left"></i> Voltar para o Login</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer-text">
+    &copy; 2026 MEGA GIRO. Todos os direitos reservados.
+  </footer>
+
+  <script>
+    const API_BASE_URL = window.location.port === '5500' ? 'http://localhost:3000' : '';
+    let emailUsuario = '';
+
+    // Captura o e-mail passado no link da URL (?email=usuario@megagiromg.com.br)
+    function capturarParametrosURL() {
+      const urlParams = new URLSearchParams(window.location.search);
+      emailUsuario = urlParams.get('email') || '';
+
+      if (emailUsuario) {
+        document.getElementById('userTargetEmail').innerText = emailUsuario;
+        document.getElementById('userTargetBox').style.display = 'flex';
+      }
+    }
+
+    async function handleResetPassword(event) {
+      event.preventDefault();
+
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      const messageBox = document.getElementById('messageBox');
+      const btnAlterar = document.getElementById('btnAlterar');
+
+      messageBox.className = 'message-box';
+      messageBox.innerText = '';
+
+      if (newPassword !== confirmPassword) {
+        messageBox.className = 'message-box error';
+        messageBox.innerText = 'A senha não confere. Verifique se os dois campos estão idênticos.';
+        return;
+      }
+
+      btnAlterar.setAttribute('disabled', 'true');
+      btnAlterar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/reset-password`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ 
+            email: emailUsuario, 
+            newPassword 
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          messageBox.className = 'message-box success';
+          messageBox.innerText = data.message || 'Senha alterada com sucesso! Redirecionando para o login...';
+
+          setTimeout(() => {
+            window.location.href = '../index.html';
+          }, 2000);
+        } else {
+          messageBox.className = 'message-box error';
+          messageBox.innerText = data.message || 'Erro ao redefinir a senha.';
+        }
+      } catch (error) {
+        console.error('Erro de conexão:', error);
+        messageBox.className = 'message-box error';
+        messageBox.innerText = 'Não foi possível conectar ao servidor. Verifique se o backend (node server.js) está rodando.';
+      } finally {
+        btnAlterar.removeAttribute('disabled');
+        btnAlterar.innerHTML = 'Alterar Senha';
+      }
+    }
+
+    window.onload = capturarParametrosURL;
+  </script>
+</body>
+</html>

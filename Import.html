@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MEGA GIRO - Importação de Arquivos</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="Layout/style.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #f4f6f9; color: #333; padding: 0 0 20px 0; }
+    .dashboard-container { padding: 0 20px 20px 20px; max-width: 1400px; margin: 0 auto; }
+
+    .subtitle-card {
+      background: #006633;
+      color: white;
+      padding: 15px 25px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .subtitle-card h1 { font-size: 22px; font-weight: 600; }
+    .subtitle { font-size: 13px; color: #d1e7dd; margin-top: 4px; }
+
+    .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab-btn { background: #e9ecef; border: 1px solid #ced4da; padding: 10px 18px; border-radius: 20px; font-size: 14px; font-weight: 600; color: #495057; cursor: pointer; transition: all 0.2s; }
+    .tab-btn:hover { background: #dee2e6; }
+    .tab-btn.active { background: #006633; color: white; border-color: #006633; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+
+    .card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+  </style>
+</head>
+<body>
+
+  <!-- Cabeçalho -->
+  <div id="header-container"></div>
+
+  <div class="dashboard-container">
+    <div class="subtitle-card">
+      <h1>MEGA GIRO - Importação de Arquivos</h1>
+      <div class="subtitle">Certifique-se de que os arquivos estejam nos formatos e layouts homologados para garantir a integridade do processamento.</div>
+    </div>
+
+    <!-- Submenu de Importações -->
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="trocarSubmenuImportacao(this, 'subClientes')">
+        <i class="fa-solid fa-users"></i> Clientes
+      </button>
+      <button class="tab-btn" onclick="trocarSubmenuImportacao(this, 'subVolume')">
+        <i class="fa-solid fa-boxes-stacked"></i> Meta de Volume
+      </button>
+      <button class="tab-btn" onclick="trocarSubmenuImportacao(this, 'subCobertura')">
+        <i class="fa-solid fa-bullseye"></i> Meta de Cobertura
+      </button>
+    </div>
+
+    <!-- SUBMENU 1: CLIENTES -->
+    <div id="subClientes" class="card tab-import-content">
+      <div style="margin-bottom: 20px;">
+        <h3 style="font-size: 18px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px;">Importação de Dados - Base de Clientes</h3>
+        <p style="font-size: 13px; color: #666;">Importe a base de cadastro geral de clientes para alimentação unificada das metas.</p>
+      </div>
+
+      <div class="client-import-box">
+        <div class="client-import-icon"><i class="fa-solid fa-users"></i></div>
+        <h4 class="client-import-title">Base de Clientes</h4>
+        <p class="client-import-sub">Selecione a planilha de cadastro de clientes (.xlsx, .csv)</p>
+        
+        <button type="button" class="btn-select-file" onclick="document.getElementById('fileCliInput').click()">
+          <i class="fa-solid fa-paperclip"></i> Selecionar Arquivo
+        </button>
+        <input type="file" id="fileCliInput" class="file-input-hidden" accept=".csv, .xlsx, .xls" onchange="atualizarStatusArquivoGeneric(this, 'fileCliName', 'btnProcessarCli')">
+        
+        <div id="fileCliName" class="file-selected-name" style="display: none;"></div>
+
+        <button type="button" id="btnProcessarCli" class="btn-process-file" disabled onclick="executarImportacaoGenerica('fileCliInput', '/api/import/clientes', 'progressCliContainer', 'progressCliFill', 'progressCliText', 'summaryCliContainer', 'summaryCliTitle', 'statCliVerificadas', 'statCliAtualizadas', 'statCliImportadas', 'btnProcessarCli', 'Processar Base de Clientes')">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Processar Base de Clientes
+        </button>
+
+        <div id="progressCliContainer" class="progress-container" style="display: none;">
+          <div class="progress-bar-bg"><div id="progressCliFill" class="progress-bar-fill" style="width: 0%;"></div></div>
+          <div id="progressCliText" class="progress-text">Iniciando processamento... 0%</div>
+        </div>
+
+        <div id="summaryCliContainer" class="summary-box" style="display: none;">
+          <div id="summaryCliTitle" class="summary-title"></div>
+          <div class="summary-grid">
+            <div class="summary-card stat-verified"><span class="stat-number" id="statCliVerificadas">0</span><span class="stat-label">Linhas Lidas</span></div>
+            <div class="summary-card stat-updated"><span class="stat-number" id="statCliAtualizadas">0</span><span class="stat-label">Atualizados</span></div>
+            <div class="summary-card stat-imported"><span class="stat-number" id="statCliImportadas">0</span><span class="stat-label">Novos Inseridos</span></div>
+          </div>
+        </div>
+
+        <button type="button" id="btnAtualizarCliAtivos" class="btn-process-file ready btn-secondary-action" onclick="executarAtualizacaoClientesAtivos()">
+          <i class="fa-solid fa-user-check"></i> Atualizar Base de Clientes Ativa
+        </button>
+        <div id="msgCliAtivosImport" class="message-box" style="margin-top: 15px; text-align: center; width: 100%;"></div>
+      </div>
+    </div>
+
+    <!-- SUBMENU 2: META DE VOLUME -->
+    <div id="subVolume" class="card tab-import-content" style="display: none;">
+      <div style="margin-bottom: 20px;">
+        <h3 style="font-size: 18px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px;">Importação de Arquivos - Meta de Volume</h3>
+        <p style="font-size: 13px; color: #666;">Importe individualmente cada um dos arquivos necessários para processar a meta de volume.</p>
+      </div>
+
+      <div class="import-grid-3">
+        <!-- Card 1: Base de Produtos -->
+        <div class="client-import-box grid-card">
+          <div class="client-import-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+          <h4 class="client-import-title">Base de Produtos</h4>
+          <p class="client-import-sub">Selecione o cadastro e a tabela de produtos (.xlsx, .csv)</p>
+          <button type="button" class="btn-select-file" onclick="document.getElementById('fileProdInput').click()"><i class="fa-solid fa-paperclip"></i> Selecionar Arquivo</button>
+          <input type="file" id="fileProdInput" class="file-input-hidden" accept=".csv, .xlsx, .xls" onchange="atualizarStatusArquivoGeneric(this, 'fileProdName', 'btnProcessarProd')">
+          <div id="fileProdName" class="file-selected-name" style="display: none;"></div>
+
+          <button type="button" id="btnProcessarProd" class="btn-process-file" disabled onclick="executarImportacaoGenerica('fileProdInput', '/api/import/produtos', 'progressProdContainer', 'progressProdFill', 'progressProdText', 'summaryProdContainer', 'summaryProdTitle', 'statProdVerificadas', 'statProdAtualizadas', 'statProdImportadas', 'btnProcessarProd', 'Processar Base de Produtos')">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Processar Base de Produtos
+          </button>
+          <div id="progressProdContainer" class="progress-container" style="display: none;">
+            <div class="progress-bar-bg"><div id="progressProdFill" class="progress-bar-fill" style="width: 0%;"></div></div>
+            <div id="progressProdText" class="progress-text">Processando... 0%</div>
+          </div>
+          <div id="summaryProdContainer" class="summary-box" style="display: none;">
+            <div id="summaryProdTitle" class="summary-title"></div>
+            <div class="summary-grid">
+              <div class="summary-card stat-verified"><span class="stat-number" id="statProdVerificadas">0</span><span class="stat-label">Total Lidos</span></div>
+              <div class="summary-card stat-updated"><span class="stat-number" id="statProdAtualizadas">0</span><span class="stat-label">Atualizados</span></div>
+              <div class="summary-card stat-imported"><span class="stat-number" id="statProdImportadas">0</span><span class="stat-label">Novos</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Histórico -->
+        <div class="client-import-box grid-card">
+          <div class="client-import-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+          <h4 class="client-import-title">Base Histórica do Master Cross</h4>
+          <p class="client-import-sub">Selecione o arquivo histórico dos últimos 6 meses (.xlsx, .csv)</p>
+          <button type="button" class="btn-select-file" onclick="document.getElementById('fileHistInput').click()"><i class="fa-solid fa-paperclip"></i> Selecionar Arquivo</button>
+          <input type="file" id="fileHistInput" class="file-input-hidden" accept=".csv, .xlsx, .xls" onchange="atualizarStatusArquivoGeneric(this, 'fileHistName', 'btnProcessarHist')">
+          <div id="fileHistName" class="file-selected-name" style="display: none;"></div>
+
+          <button type="button" id="btnProcessarHist" class="btn-process-file" disabled onclick="executarImportacaoGenerica('fileHistInput', '/api/import/historico-mastercross', 'progressHistContainer', 'progressHistFill', 'progressHistText', 'summaryHistContainer', 'summaryHistTitle', 'statHistVerificadas', 'statHistAtualizadas', 'statHistImportadas', 'btnProcessarHist', 'Processar Base Histórica')">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Processar Base Histórica
+          </button>
+          <div id="progressHistContainer" class="progress-container" style="display: none;">
+            <div class="progress-bar-bg"><div id="progressHistFill" class="progress-bar-fill" style="width: 0%;"></div></div>
+            <div id="progressHistText" class="progress-text">Processando... 0%</div>
+          </div>
+          <div id="summaryHistContainer" class="summary-box" style="display: none;">
+            <div id="summaryHistTitle" class="summary-title"></div>
+            <div class="summary-grid">
+              <div class="summary-card stat-verified"><span class="stat-number" id="statHistVerificadas">0</span><span class="stat-label">Total Lidos</span></div>
+              <div class="summary-card stat-updated"><span class="stat-number" id="statHistAtualizadas">0</span><span class="stat-label">Atualizados</span></div>
+              <div class="summary-card stat-imported"><span class="stat-number" id="statHistImportadas">0</span><span class="stat-label">Inseridos</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Metas CIA Volume -->
+        <div class="client-import-box grid-card">
+          <div class="client-import-icon"><i class="fa-solid fa-file-circle-check"></i></div>
+          <h4 class="client-import-title">Arquivo de Metas da CIA.</h4>
+          <p class="client-import-sub">Selecione o arquivo oficial de metas enviadas pela CIA (.xlsx, .csv)</p>
+          <button type="button" class="btn-select-file" onclick="document.getElementById('fileMetaCiaInput').click()"><i class="fa-solid fa-paperclip"></i> Selecionar Arquivo</button>
+          <input type="file" id="fileMetaCiaInput" class="file-input-hidden" accept=".csv, .xlsx, .xls" onchange="atualizarStatusArquivoGeneric(this, 'fileMetaCiaName', 'btnProcessarMetaCia')">
+          <div id="fileMetaCiaName" class="file-selected-name" style="display: none;"></div>
+
+          <button type="button" id="btnProcessarMetaCia" class="btn-process-file" disabled onclick="executarImportacaoGenerica('fileMetaCiaInput', '/api/import/metas-cia-volume', 'progressMetaCiaContainer', 'progressMetaCiaFill', 'progressMetaCiaText', 'summaryMetaCiaContainer', 'summaryMetaCiaTitle', 'statMetaCiaVerificadas', 'statMetaCiaAtualizadas', 'statMetaCiaImportadas', 'btnProcessarMetaCia', 'Processar Metas da CIA')">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Processar Metas da CIA
+          </button>
+          <div id="progressMetaCiaContainer" class="progress-container" style="display: none;">
+            <div class="progress-bar-bg"><div id="progressMetaCiaFill" class="progress-bar-fill" style="width: 0%;"></div></div>
+            <div id="progressMetaCiaText" class="progress-text">Processando... 0%</div>
+          </div>
+          <div id="summaryMetaCiaContainer" class="summary-box" style="display: none;">
+            <div id="summaryMetaCiaTitle" class="summary-title"></div>
+            <div class="summary-grid">
+              <div class="summary-card stat-verified"><span class="stat-number" id="statMetaCiaVerificadas">0</span><span class="stat-label">Total Lidos</span></div>
+              <div class="summary-card stat-updated"><span class="stat-number" id="statMetaCiaAtualizadas">0</span><span class="stat-label">Atualizados</span></div>
+              <div class="summary-card stat-imported"><span class="stat-number" id="statMetaCiaImportadas">0</span><span class="stat-label">Inseridos</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUBMENU 3: META DE COBERTURA -->
+    <div id="subCobertura" class="card tab-import-content" style="display: none;">
+      <div style="margin-bottom: 20px;">
+        <h3 style="font-size: 18px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px;">Importação de Arquivos - Meta de Cobertura</h3>
+        <p style="font-size: 13px; color: #666;">Importe individualmente cada um dos arquivos necessários para processar a meta de cobertura.</p>
+      </div>
+
+      <div class="import-grid-2">
+        <div class="client-import-box grid-card">
+          <div class="client-import-icon"><i class="fa-solid fa-diagram-project"></i></div>
+          <h4 class="client-import-title">Base do Master Cross</h4>
+          <p class="client-import-sub">Selecione o arquivo da base Master Cross (.xlsx, .csv)</p>
+          <button type="button" class="btn-select-file" onclick="document.getElementById('fileMasterCobInput').click()"><i class="fa-solid fa-paperclip"></i> Selecionar Arquivo</button>
+          <input type="file" id="fileMasterCobInput" class="file-input-hidden" accept=".csv, .xlsx, .xls" onchange="atualizarStatusArquivoGeneric(this, 'fileMasterCobName', 'btnProcessarMasterCob')">
+          <div id="fileMasterCobName" class="file-selected-name" style="display: none;"></div>
+
+          <button type="button" id="btnProcessarMasterCob" class="btn-process-file" disabled onclick="executarImportacaoGenerica('fileMasterCobInput', '/api/import/master-cobertura', 'progressMasterCobContainer', 'progressMasterCobFill', 'progressMasterCobText', 'summaryMasterCobContainer', 'summaryMasterCobTitle', 'statMasterCobVerificadas', 'statMasterCobAtualizadas', 'statMasterCobImportadas', 'btnProcessarMasterCob', 'Processar Master Cross')">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Processar Master Cross
+          </button>
+          <div id="progressMasterCobContainer" class="progress-container" style="display: none;"><div class="progress-bar-bg"><div id="progressMasterCobFill" class="progress-bar-fill" style="width: 0%;"></div></div><div id="progressMasterCobText" class="progress-text">Processando... 0%</div></div>
+          <div id="summaryMasterCobContainer" class="summary-box" style="display: none;"><div id="summaryMasterCobTitle" class="summary-title"></div><div class="summary-grid"><div class="summary-card stat-verified"><span class="stat-number" id="statMasterCobVerificadas">0</span><span class="stat-label">Total Lidos</span></div><div class="summary-card stat-updated"><span class="stat-number" id="statMasterCobAtualizadas">0</span><span class="stat-label">Atualizados</span></div><div class="summary-card stat-imported"><span class="stat-number" id="statMasterCobImportadas">0</span><span class="stat-label">Inseridos</span></div></div></div>
+        </div>
+
+        <div class="client-import-box grid-card">
+          <div class="client-import-icon"><i class="fa-solid fa-file-circle-check"></i></div>
+          <h4 class="client-import-title">Arquivo de Metas da CIA.</h4>
+          <p class="client-import-sub">Selecione o arquivo oficial de metas enviadas pela CIA (.xlsx, .csv)</p>
+          <button type="button" class="btn-select-file" onclick="document.getElementById('fileMetaCobCiaInput').click()"><i class="fa-solid fa-paperclip"></i> Selecionar Arquivo</button>
+          <input type="file" id="fileMetaCobCiaInput" class="file-input-hidden" accept=".csv, .xlsx, .xls" onchange="atualizarStatusArquivoGeneric(this, 'fileMetaCobCiaName', 'btnProcessarMetaCobCia')">
+          <div id="fileMetaCobCiaName" class="file-selected-name" style="display: none;"></div>
+
+          <button type="button" id="btnProcessarMetaCobCia" class="btn-process-file" disabled onclick="executarImportacaoGenerica('fileMetaCobCiaInput', '/api/import/metas-cia-cobertura', 'progressMetaCobCiaContainer', 'progressMetaCobCiaFill', 'progressMetaCobCiaText', 'summaryMetaCobCiaContainer', 'summaryMetaCobCiaTitle', 'statMetaCobCiaVerificadas', 'statMetaCobCiaAtualizadas', 'statMetaCobCiaImportadas', 'btnProcessarMetaCobCia', 'Processar Metas da CIA')">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Processar Metas da CIA
+          </button>
+          <div id="progressMetaCobCiaContainer" class="progress-container" style="display: none;"><div class="progress-bar-bg"><div id="progressMetaCobCiaFill" class="progress-bar-fill" style="width: 0%;"></div></div><div id="progressMetaCobCiaText" class="progress-text">Processando... 0%</div></div>
+          <div id="summaryMetaCobCiaContainer" class="summary-box" style="display: none;"><div id="summaryMetaCobCiaTitle" class="summary-title"></div><div class="summary-grid"><div class="summary-card stat-verified"><span class="stat-number" id="statMetaCobCiaVerificadas">0</span><span class="stat-label">Total Lidos</span></div><div class="summary-card stat-updated"><span class="stat-number" id="statMetaCobCiaAtualizadas">0</span><span class="stat-label">Atualizados</span></div><div class="summary-card stat-imported"><span class="stat-number" id="statMetaCobCiaImportadas">0</span><span class="stat-label">Inseridos</span></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rodapé -->
+  <div id="footer-container"></div>
+
+  <script>
+    async function carregarLayout() {
+      try {
+        const resHeader = await fetch('Layout/Cabecalho/header.html');
+        if (resHeader.ok) document.getElementById('header-container').innerHTML = await resHeader.text();
+
+        const resFooter = await fetch('Layout/Rodape/footer.html');
+        if (resFooter.ok) document.getElementById('footer-container').innerHTML = await resFooter.text();
+      } catch (err) {
+        console.error('Erro ao carregar layout:', err);
+      }
+    }
+
+    function trocarSubmenuImportacao(element, idSubmenu) {
+      document.querySelectorAll('.nav-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
+      element.classList.add('active');
+
+      document.querySelectorAll('.tab-import-content').forEach(card => card.style.display = 'none');
+      document.getElementById(idSubmenu).style.display = 'block';
+    }
+
+    function atualizarStatusArquivoGeneric(input, nameDivId, btnId) {
+      const fileNameDiv = document.getElementById(nameDivId);
+      const btnProcessar = document.getElementById(btnId);
+
+      if (input.files && input.files.length > 0) {
+        fileNameDiv.innerText = `Arquivo: ${input.files[0].name}`;
+        fileNameDiv.style.display = 'block';
+        btnProcessar.removeAttribute('disabled');
+        btnProcessar.classList.add('ready');
+      } else {
+        fileNameDiv.style.display = 'none';
+        btnProcessar.setAttribute('disabled', 'true');
+        btnProcessar.classList.remove('ready');
+      }
+    }
+
+    async function executarImportacaoGenerica(inputId, urlApi, progContainerId, progFillId, progTextId, sumContainerId, sumTitleId, statVerifId, statAtualizId, statImportId, btnId, btnOriginalText) {
+      const input = document.getElementById(inputId);
+      const btnProcessar = document.getElementById(btnId);
+      const progressContainer = document.getElementById(progContainerId);
+      const progressFill = document.getElementById(progFillId);
+      const progressText = document.getElementById(progTextId);
+      const summaryContainer = document.getElementById(sumContainerId);
+      const summaryTitle = document.getElementById(sumTitleId);
+
+      if (!input.files || input.files.length === 0) return;
+
+      const formData = new FormData();
+      formData.append('file', input.files[0]);
+
+      btnProcessar.setAttribute('disabled', 'true');
+      btnProcessar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processando...';
+      summaryContainer.style.display = 'none';
+      progressContainer.style.display = 'block';
+      progressFill.style.width = '10%';
+      progressText.innerText = 'Lendo arquivo... 10%';
+
+      let progressVal = 10;
+      const progressInterval = setInterval(() => {
+        if (progressVal < 90) {
+          progressVal += 5;
+          progressFill.style.width = `${progressVal}%`;
+          progressText.innerText = `Sincronizando... ${progressVal}%`;
+        }
+      }, 250);
+
+      try {
+        const response = await fetch(urlApi, { method: 'POST', body: formData });
+        const data = await response.json();
+        clearInterval(progressInterval);
+
+        progressFill.style.width = '100%';
+        progressText.innerText = 'Concluído! 100%';
+
+        setTimeout(() => {
+          progressContainer.style.display = 'none';
+          summaryContainer.style.display = 'block';
+
+          if (data.success) {
+            summaryContainer.className = 'summary-box success';
+            summaryTitle.innerHTML = '<i class="fa-solid fa-circle-check"></i> Processamento bem-sucedido!';
+            document.getElementById(statVerifId).innerText = (data.totalLidos || 0).toLocaleString('pt-BR');
+            document.getElementById(statAtualizId).innerText = (data.atualizados || 0).toLocaleString('pt-BR');
+            document.getElementById(statImportId).innerText = (data.novos || 0).toLocaleString('pt-BR');
+          } else {
+            summaryContainer.className = 'summary-box error';
+            summaryTitle.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Erro: ' + data.message;
+          }
+        }, 500);
+
+      } catch (error) {
+        clearInterval(progressInterval);
+        progressContainer.style.display = 'none';
+        summaryContainer.style.display = 'block';
+        summaryContainer.className = 'summary-box error';
+        summaryTitle.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Falha de conexão com o servidor.';
+      } finally {
+        btnProcessar.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> ${btnOriginalText}`;
+        if (input.files.length > 0) btnProcessar.removeAttribute('disabled');
+      }
+    }
+
+    async function executarAtualizacaoClientesAtivos() {
+      const btnAtivos = document.getElementById('btnAtualizarCliAtivos');
+      const msgBox = document.getElementById('msgCliAtivosImport');
+
+      btnAtivos.setAttribute('disabled', 'true');
+      btnAtivos.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Atualizando...';
+      msgBox.style.display = 'none';
+
+      try {
+        const response = await fetch('/api/import/clientes-ativos', { method: 'POST' });
+        const data = await response.json();
+
+        msgBox.style.display = 'block';
+        if (data.success) {
+          msgBox.className = 'message-box success';
+          msgBox.innerText = data.message;
+        } else {
+          msgBox.className = 'message-box error';
+          msgBox.innerText = 'Erro: ' + data.message;
+        }
+      } catch (error) {
+        msgBox.style.display = 'block';
+        msgBox.className = 'message-box error';
+        msgBox.innerText = 'Falha ao conectar com o servidor.';
+      } finally {
+        btnAtivos.removeAttribute('disabled');
+        btnAtivos.innerHTML = '<i class="fa-solid fa-user-check"></i> Atualizar Base de Clientes Ativa';
+      }
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('usuarioLogado');
+      window.location.href = 'index.html';
+    }
+
+    window.onload = carregarLayout;
+  </script>
+</body>
+</html>

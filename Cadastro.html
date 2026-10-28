@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MEGA GIRO - Cadastro Geral</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="Layout/style.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #f4f6f9; color: #333; padding: 0 0 20px 0; }
+    .dashboard-container { padding: 0 20px 20px 20px; max-width: 1400px; margin: 0 auto; }
+
+    .subtitle-card {
+      background: #006633;
+      color: white;
+      padding: 15px 25px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .subtitle-card h1 { font-size: 22px; font-weight: 600; }
+    .subtitle { font-size: 13px; color: #d1e7dd; margin-top: 4px; }
+
+    .card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .empty-state { text-align: center; padding: 40px 20px; color: #666; }
+    .empty-state i { font-size: 48px; color: #006633; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+
+  <!-- Cabeçalho -->
+  <div id="header-container"></div>
+
+  <div class="dashboard-container">
+    <div class="subtitle-card">
+      <h1>MEGA GIRO - Cadastro Geral do Sistema</h1>
+      <div class="subtitle">Gestão de parâmetros, usuários, revendas e tabelas de apoio.</div>
+    </div>
+
+    <div class="card">
+      <div class="empty-state">
+        <i class="fa-solid fa-pen-to-square"></i>
+        <h3>Módulo de Cadastro</h3>
+        <p>A estrutura deste módulo está pronta. Em breve os formulários de manutenção estarão disponíveis.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rodapé -->
+  <div id="footer-container"></div>
+
+  <script>
+    async function carregarLayout() {
+      try {
+        const resHeader = await fetch('Layout/Cabecalho/header.html');
+        if (resHeader.ok) document.getElementById('header-container').innerHTML = await resHeader.text();
+
+        const resFooter = await fetch('Layout/Rodape/footer.html');
+        if (resFooter.ok) document.getElementById('footer-container').innerHTML = await resFooter.text();
+      } catch (err) {
+        console.error('Erro ao carregar layout:', err);
+      }
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('usuarioLogado');
+      window.location.href = 'index.html';
+    }
+
+    window.onload = carregarLayout;
+  </script>
+</body>
+</html>

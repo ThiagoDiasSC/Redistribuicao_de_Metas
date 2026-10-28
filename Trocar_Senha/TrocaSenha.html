@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recuperar Senha - MEGA GIRO</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../Layout/style.css">
+</head>
+<body class="auth-page">
+
+  <main class="card-container">
+    <div class="banner-header">
+      <svg class="banner-logo" viewBox="0 0 400 180" xmlns="http://www.w3.org/2000/svg">
+        <g fill="#ffffff">
+          <text x="10" y="85" font-family="'Arial Black', 'Impact', sans-serif" font-weight="900" font-size="70" letter-spacing="-2">MEGA</text>
+          <text x="180" y="135" font-family="'Arial Black', 'Impact', sans-serif" font-weight="900" font-size="70" letter-spacing="-2">GIRO</text>
+          <text x="185" y="162" font-family="'Segoe UI', Arial, sans-serif" font-weight="700" font-size="19" letter-spacing="0.5">Distribuidor Autorizado</text>
+          <path d="M 330 60 C 310 30, 200 40, 100 100 C 60 124, 50 145, 65 152 C 75 157, 120 145, 170 120" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="card-content">
+      <h2 class="title">Recuperação de Senha</h2>
+      <p class="instructions">Informe o e-mail cadastrado em sua conta para receber as instruções de redefinição.</p>
+
+      <form class="recovery-form" id="recoveryForm" onsubmit="handleRecovery(event)">
+        <div class="form-group">
+          <label for="email">E-mail corporativo</label>
+          <div class="input-wrapper">
+            <input type="email" id="email" class="form-input" placeholder="Digite seu e-mail" required autocomplete="email">
+            <i class="fa-regular fa-envelope input-icon"></i>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit" id="btnEnviar">Enviar</button>
+
+        <div id="messageBox" class="message-box"></div>
+      </form>
+
+      <div class="back-link">
+        <a href="../index.html"><i class="fa-solid fa-arrow-left"></i> Voltar para o Login</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer-text">
+    &copy; 2026 MEGA GIRO. Todos os direitos reservados.
+  </footer>
+
+  <script>
+    const API_BASE_URL = window.location.port === '5500' ? 'http://localhost:3000' : '';
+
+    async function handleRecovery(event) {
+      event.preventDefault();
+
+      const email = document.getElementById('email').value;
+      const messageBox = document.getElementById('messageBox');
+      const btnEnviar = document.getElementById('btnEnviar');
+
+      messageBox.className = 'message-box';
+      messageBox.innerHTML = '';
+      btnEnviar.setAttribute('disabled', 'true');
+      btnEnviar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/recover-password`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          messageBox.className = 'message-box success';
+          messageBox.innerHTML = `
+            <strong><i class="fa-solid fa-circle-check"></i> Solicitação enviada!</strong><br>
+            As orientações para redefinir sua senha foram encaminhadas para o e-mail informado.
+          `;
+        } else {
+          messageBox.className = 'message-box error';
+          messageBox.innerText = data.message || 'Erro ao solicitar recuperação de senha.';
+        }
+      } catch (error) {
+        console.error('Erro de conexão:', error);
+        messageBox.className = 'message-box error';
+        messageBox.innerText = 'Não foi possível conectar ao servidor. Verifique se o backend (node server.js) está rodando.';
+      } finally {
+        btnEnviar.removeAttribute('disabled');
+        btnEnviar.innerHTML = 'Enviar';
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MEGA GIRO - Meta de Volume</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="Layout/style.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #f4f6f9; color: #333; padding: 0 0 20px 0; }
+    
+    .dashboard-container { padding: 0 20px 20px 20px; max-width: 1400px; margin: 0 auto; }
+
+    .subtitle-card {
+      background: #006633;
+      color: white;
+      padding: 15px 25px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .subtitle-card h1 { font-size: 22px; font-weight: 600; }
+    .subtitle { font-size: 13px; color: #d1e7dd; margin-top: 4px; }
+
+    .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab-btn { background: #e9ecef; border: 1px solid #ced4da; padding: 10px 18px; border-radius: 20px; font-size: 14px; font-weight: 600; color: #495057; cursor: pointer; transition: all 0.2s; }
+    .tab-btn:hover { background: #dee2e6; }
+    .tab-btn.active { background: #006633; color: white; border-color: #006633; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .tab-btn.tab-export { background: #157347; color: white; border-color: #157347; }
+    .tab-btn.tab-export:hover { background: #115c38; }
+
+    .card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .table-container { overflow-x: auto; margin-top: 15px; border: 1px solid #e0e0e0; border-radius: 6px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #eee; white-space: nowrap; }
+    th { background: #f8f9fa; color: #495057; font-weight: 700; position: sticky; top: 0; z-index: 2; border-bottom: 2px solid #dee2e6; }
+    tr:hover { background: #f1f8f5; }
+
+    .bg-meta { background-color: #e8f5e9; font-weight: bold; color: #1b5e20; }
+    .bg-umb { background-color: #e3f2fd; font-weight: bold; color: #0d47a1; text-align: center; }
+    .bg-dif-zero { background-color: #d1e7dd; color: #0f5132; font-weight: bold; text-align: center; }
+    .bg-dif-erro { background-color: #f8d7da; color: #842029; font-weight: bold; text-align: center; }
+
+    input[type="number"] { width: 70px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; text-align: center; font-size: 13px; }
+    input[type="number"]:focus { border-color: #006633; outline: none; background: #e8f5e9; }
+
+    .actions { margin-top: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+    
+    .btn-salvar { 
+      background: #006633; 
+      color: white; 
+      border: none; 
+      padding: 12px 24px; 
+      font-size: 14px; 
+      font-weight: bold; 
+      border-radius: 6px; 
+      cursor: pointer; 
+      transition: all 0.2s ease; 
+    }
+    .btn-salvar:hover:not(:disabled) { background: #004d26; }
+    .btn-salvar:disabled { background: #888888; cursor: not-allowed; opacity: 0.65; box-shadow: none; }
+
+    .btn-exportar {
+      background: #0d6efd;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-exportar:hover { background: #0b5ed7; }
+
+    .export-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .search-input {
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 13px;
+      width: 260px;
+    }
+
+    .status-msg-diferenca {
+      font-size: 13px;
+      color: #842029;
+      font-weight: 600;
+      background-color: #f8d7da;
+      padding: 6px 14px;
+      border-radius: 4px;
+      border: 1px solid #f5c2c7;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .loading { text-align: center; padding: 40px; font-size: 16px; color: #666; }
+  </style>
+</head>
+<body>
+
+  <!-- Cabeçalho -->
+  <div id="header-container"></div>
+
+  <div class="dashboard-container">
+    <div class="subtitle-card">
+      <h1>MEGA GIRO - Distribuição de Metas de Volume</h1>
+      <div class="subtitle">Distribuição por produto único e vendedor com potencial do histórico (valores inteiros).</div>
+    </div>
+
+    <!-- Navegação pelas Revendas e Submenu Exportação -->
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="trocarRevenda('10', this)">10 - Volume CF</button>
+      <button class="tab-btn" onclick="trocarRevenda('20', this)">20 - Volume MA</button>
+      <button class="tab-btn" onclick="trocarRevenda('30', this)">30 - Volume GV</button>
+      <button class="tab-btn" onclick="trocarRevenda('40', this)">40 - Volume TO</button>
+      <button class="tab-btn" onclick="trocarRevenda('50', this)">50 - Volume ITB</button>
+      <button class="tab-btn" onclick="trocarRevenda('60', this)">60 - Volume JM</button>
+      <button class="tab-btn tab-export" onclick="abrirExportacao(this)"><i class="fa-solid fa-file-export"></i> Exportação</button>
+    </div>
+
+    <div class="card">
+      <div id="loading" class="loading">Carregando metas...</div>
+      
+      <!-- Tabela de Distribuição Normal -->
+      <div class="table-container" id="tableContainer" style="display: none;">
+        <table id="tabelaMetas">
+          <thead id="theadMetas"></thead>
+          <tbody id="tbodyMetas"></tbody>
+        </table>
+      </div>
+
+      <div class="actions" id="actionsContainer" style="display: none;">
+        <div id="msgStatusDiferenca" class="status-msg-diferenca" style="display: none;">
+          <i class="fa-solid fa-triangle-exclamation"></i> Existem produtos com diferença na distribuição. Corrija para liberar o salvamento.
+        </div>
+        <button id="btnSalvar" class="btn-salvar" onclick="salvarMetas()">Salvar Alterações</button>
+      </div>
+
+      <!-- Container do Submenu Exportação -->
+      <div id="exportContainer" style="display: none;">
+        <div class="export-header-bar">
+          <div>
+            <h3 style="font-size: 16px; color: #006633;"><i class="fa-solid fa-file-csv"></i> Preview do Arquivo METAS OUT.csv</h3>
+            <span id="exportInfo" style="font-size: 12px; color: #666;">Carregando registros...</span>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="text" id="inputBuscaExport" class="search-input" placeholder="Buscar por vendedor ou material..." onkeyup="filtrarTabelaExport()">
+            <button class="btn-exportar" onclick="baixarArquivoCSV()">
+              <i class="fa-solid fa-download"></i> Baixar METAS OUT.csv
+            </button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Ano</th>
+                <th>Mês</th>
+                <th>Vendedor</th>
+                <th>Material</th>
+                <th>Meta Vendedor</th>
+                <th>Campo 5</th>
+                <th>Campo 6</th>
+                <th>Meta CIA</th>
+                <th>Linha Formatada (Leiaute)</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyExport"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Rodapé -->
+  <div id="footer-container"></div>
+
+  <script>
+    let revendaAtual = '10';
+    let dadosAtuais = null;
+    let dadosExportacaoGlobal = null;
+
+    async function carregarLayout() {
+      try {
+        const resHeader = await fetch('Layout/Cabecalho/header.html');
+        if (resHeader.ok) document.getElementById('header-container').innerHTML = await resHeader.text();
+
+        const resFooter = await fetch('Layout/Rodape/footer.html');
+        if (resFooter.ok) document.getElementById('footer-container').innerHTML = await resFooter.text();
+      } catch (err) {
+        console.error('Erro ao carregar layout:', err);
+      }
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('usuarioLogado');
+      window.location.href = 'index.html';
+    }
+
+    async function carregarMetas(revenda) {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('tableContainer').style.display = 'none';
+      document.getElementById('actionsContainer').style.display = 'none';
+      document.getElementById('exportContainer').style.display = 'none';
+
+      try {
+        const res = await fetch(`/api/metas/volume?revenda=${revenda}`);
+        const data = await res.json();
+
+        if (data.success) {
+          dadosAtuais = data;
+          renderizarTabela(data);
+        } else {
+          alert('Erro ao carregar dados: ' + data.message);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao se conectar com o servidor.');
+      } finally {
+        document.getElementById('loading').style.display = 'none';
+      }
+    }
+
+    function renderizarTabela(data) {
+      const thead = document.getElementById('theadMetas');
+      const tbody = document.getElementById('tbodyMetas');
+
+      thead.innerHTML = '';
+      tbody.innerHTML = '';
+
+      const { vendedores, produtos } = data;
+
+      let headerHTML = `
+        <tr>
+          <th>Material</th>
+          <th>Descrição Material</th>
+          <th>Família</th>
+          <th>Marca</th>
+          <th class="bg-meta">Meta CIA</th>
+          <th class="bg-umb">UMB Arredondado</th>
+          <th style="text-align: center;">Soma Distr.</th>
+          <th style="text-align: center;">Diferença</th>
+      `;
+
+      vendedores.forEach(v => {
+        headerHTML += `<th style="text-align: center;">Vend ${v}</th>`;
+      });
+
+      headerHTML += `</tr>`;
+      thead.innerHTML = headerHTML;
+
+      produtos.forEach((prod, index) => {
+        const umbArredondado = prod.umb_arredondado || 0;
+        const tr = document.createElement('tr');
+        tr.dataset.material = prod.Material;
+        tr.dataset.umb = umbArredondado;
+
+        let totalDistribuido = 0;
+        vendedores.forEach(v => {
+          totalDistribuido += Math.round(prod.metasVendedores[v] || 0);
+        });
+
+        const diferenca = umbArredondado - totalDistribuido;
+        const diffClass = diferenca === 0 ? 'bg-dif-zero' : 'bg-dif-erro';
+
+        let rowHTML = `
+          <td>${prod.Material}</td>
+          <td>${prod.Descricao_Material || ''}</td>
+          <td>${prod.Familia || ''}</td>
+          <td>${prod.Marca || ''}</td>
+          <td class="bg-meta">${prod.Meta_Total}</td>
+          <td class="bg-umb style-umb">${prod.umb_arredondado}</td>
+          <td style="text-align: center; font-weight: bold;" id="soma_${index}">${totalDistribuido}</td>
+          <td class="${diffClass} col-diferenca" id="diff_${index}">${diferenca}</td>
+        `;
+
+        vendedores.forEach(v => {
+          const val = prod.metasVendedores[v] !== undefined ? prod.metasVendedores[v] : 0;
+          rowHTML += `
+            <td style="text-align: center;">
+              <input type="number" 
+                     value="${val}" 
+                     data-vendedor="${v}" 
+                     data-index="${index}"
+                     onchange="recalcularLinha(this)">
+            </td>
+          `;
+        });
+
+        tr.innerHTML = rowHTML;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('tableContainer').style.display = 'block';
+      document.getElementById('actionsContainer').style.display = 'flex';
+
+      verificarEstadoBotaoSalvar();
+    }
+
+    function recalcularLinha(input) {
+      const idx = input.dataset.index;
+      const tr = input.closest('tr');
+      const inputs = tr.querySelectorAll('input[data-vendedor]');
+      
+      const umbArredondado = parseInt(tr.querySelector('.style-umb').innerText || '0', 10);
+
+      let soma = 0;
+      inputs.forEach(inp => {
+        soma += parseInt(inp.value || '0', 10);
+      });
+
+      const diferenca = umbArredondado - soma;
+      
+      const tdSoma = document.getElementById(`soma_${idx}`);
+      const tdDiff = document.getElementById(`diff_${idx}`);
+
+      if (tdSoma) tdSoma.innerText = soma;
+      if (tdDiff) {
+        tdDiff.innerText = diferenca;
+        tdDiff.className = `col-diferenca ${diferenca === 0 ? 'bg-dif-zero' : 'bg-dif-erro'}`;
+      }
+
+      verificarEstadoBotaoSalvar();
+    }
+
+    function verificarEstadoBotaoSalvar() {
+      const tdDiferencas = document.querySelectorAll('#tbodyMetas .col-diferenca');
+      const btnSalvar = document.getElementById('btnSalvar');
+      const msgStatus = document.getElementById('msgStatusDiferenca');
+
+      let temDiferenca = false;
+
+      tdDiferencas.forEach(td => {
+        const val = parseInt(td.innerText || '0', 10);
+        if (val !== 0) {
+          temDiferenca = true;
+        }
+      });
+
+      if (temDiferenca) {
+        btnSalvar.setAttribute('disabled', 'true');
+        msgStatus.style.display = 'flex';
+      } else {
+        btnSalvar.removeAttribute('disabled');
+        msgStatus.style.display = 'none';
+      }
+
+      return !temDiferenca;
+    }
+
+    function trocarRevenda(revenda, btnElement) {
+      revendaAtual = revenda;
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      btnElement.classList.add('active');
+      carregarMetas(revenda);
+    }
+
+    async function abrirExportacao(btnElement) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      btnElement.classList.add('active');
+
+      document.getElementById('tableContainer').style.display = 'none';
+      document.getElementById('actionsContainer').style.display = 'none';
+      document.getElementById('loading').style.display = 'block';
+
+      try {
+        const res = await fetch('/api/metas/volume/exportar');
+        const data = await res.json();
+
+        if (data.success) {
+          dadosExportacaoGlobal = data;
+          renderizarExportacao(data);
+        } else {
+          alert('Erro ao carregar dados de exportação: ' + data.message);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao buscar dados de exportação.');
+      } finally {
+        document.getElementById('loading').style.display = 'none';
+      }
+    }
+
+    function renderizarExportacao(data) {
+      const tbody = document.getElementById('tbodyExport');
+      tbody.innerHTML = '';
+
+      document.getElementById('exportInfo').innerText = `Total de ${data.totalRegistros.toLocaleString('pt-BR')} registros combinados (Vendedores x Materiais).`;
+
+      data.dados.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.ano}</td>
+          <td>${item.mes}</td>
+          <td><strong>${item.vendedor}</strong></td>
+          <td><strong>${item.material}</strong></td>
+          <td>${item.metaVendedor}</td>
+          <td>${item.campo5}</td>
+          <td>${item.campo6}</td>
+          <td>${item.metaCia}</td>
+          <td style="font-family: monospace; color: #006633;">${item.linhaFormatada}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('exportContainer').style.display = 'block';
+    }
+
+    function filtrarTabelaExport() {
+      const termo = document.getElementById('inputBuscaExport').value.toLowerCase();
+      const trs = document.querySelectorAll('#tbodyExport tr');
+
+      trs.forEach(tr => {
+        const texto = tr.innerText.toLowerCase();
+        tr.style.display = texto.includes(termo) ? '' : 'none';
+      });
+    }
+
+    function baixarArquivoCSV() {
+      if (!dadosExportacaoGlobal || !dadosExportacaoGlobal.csvText) {
+        alert('Nenhum dado disponível para exportação.');
+        return;
+      }
+
+      const blob = new Blob([dadosExportacaoGlobal.csvText], { type: 'text/csv;charset=latin1;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'METAS OUT.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    async function salvarMetas() {
+      if (!dadosAtuais) return;
+
+      const valido = verificarEstadoBotaoSalvar();
+      if (!valido) {
+        alert('Não é possível salvar! Existem produtos onde a Soma Distribuída difere do UMB Arredondado. Ajuste os valores para zerar a diferença.');
+        return;
+      }
+
+      const distribuicao = [];
+      const trs = document.querySelectorAll('#tbodyMetas tr');
+
+      trs.forEach(tr => {
+        const material = tr.dataset.material;
+        const inputs = tr.querySelectorAll('input[data-vendedor]');
+
+        inputs.forEach(inp => {
+          distribuicao.push({
+            material: material,
+            vendedor: inp.dataset.vendedor,
+            volume: parseInt(inp.value || '0', 10)
+          });
+        });
+      });
+
+      try {
+        const res = await fetch('/api/metas/volume/salvar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ revenda: revendaAtual, distribuicao })
+        });
+
+        const data = await res.json();
+        if (data.success) alert('Metas salvas com sucesso!');
+        else alert('Erro ao salvar: ' + data.message);
+      } catch (err) {
+        alert('Erro ao conectar com o servidor para salvar.');
+      }
+    }
+
+    window.onload = () => {
+      carregarLayout();
+      carregarMetas('10');
+    };
+  </script>
+</body>
+</html>

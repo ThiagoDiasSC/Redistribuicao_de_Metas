@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MEGA GIRO - Painel de Gestão</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="Layout/style.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #f4f6f9; color: #333; padding: 0 0 20px 0; }
+    .dashboard-container { padding: 0 20px 20px 20px; max-width: 1200px; margin: 0 auto; }
+
+    .welcome-card {
+      background: #006633;
+      color: white;
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 12px rgba(0,102,51,0.15);
+    }
+    .welcome-card h1 { font-size: 26px; font-weight: 700; }
+    .welcome-card p { font-size: 14px; color: #d1e7dd; margin-top: 8px; }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .modules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .module-card {
+      background: white;
+      border-radius: 10px;
+      padding: 25px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      border: 1px solid #eef2f5;
+    }
+
+    .module-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+      border-color: #006633;
+    }
+
+    .module-icon {
+      font-size: 32px;
+      color: #006633;
+      margin-bottom: 15px;
+      background: #e8f5e9;
+      width: 60px;
+      height: 60px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .module-title { font-size: 18px; font-weight: 700; color: #1a1a1a; margin-bottom: 6px; }
+    .module-desc { font-size: 13px; color: #666; line-height: 1.4; }
+
+    /* Estilos do Campo de Importações Agrupado por Seção */
+    .import-status-card {
+      background: white;
+      border-radius: 10px;
+      padding: 25px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border: 1px solid #eef2f5;
+    }
+
+    .import-group {
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px dashed #e0e0e0;
+    }
+    .import-group:first-of-type {
+      margin-top: 15px;
+      padding-top: 0;
+      border-top: none;
+    }
+
+    .import-group-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #006633;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .import-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 15px;
+    }
+
+    .import-item {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-left: 4px solid #006633;
+      padding: 12px 15px;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .import-item-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .import-item-date {
+      font-size: 12px;
+      color: #006633;
+      font-weight: 600;
+    }
+
+    .import-item-empty {
+      font-size: 12px;
+      color: #888;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cabeçalho -->
+  <div id="header-container"></div>
+
+  <div class="dashboard-container">
+    <div class="welcome-card">
+      <h1>Bem-vindo ao Sistema de Gestão de Metas</h1>
+      <p>Selecione um dos módulos abaixo no menu superior ou pelos cards para começar.</p>
+    </div>
+
+    <!-- Módulos Principais -->
+    <h2 class="section-title"><i class="fa-solid fa-cubes"></i> Módulos do Sistema</h2>
+    <div class="modules-grid">
+      <a href="Meta_Vol.html" class="module-card">
+        <div class="module-icon"><i class="fa-solid fa-chart-column"></i></div>
+        <div class="module-title">Meta de Volume</div>
+        <div class="module-desc">Distribuição proporcional por produto e vendedor com base no histórico.</div>
+      </a>
+
+      <a href="Meta_Cob.html" class="module-card">
+        <div class="module-icon"><i class="fa-solid fa-bullseye"></i></div>
+        <div class="module-title">Meta de Cobertura</div>
+        <div class="module-desc">Acompanhamento e distribuição de metas de cobertura da base ativada.</div>
+      </a>
+
+      <a href="Import.html" class="module-card">
+        <div class="module-icon"><i class="fa-solid fa-file-import"></i></div>
+        <div class="module-title">Importações</div>
+        <div class="module-desc">Importação unificada das bases de clientes, produtos, histórico e CIA.</div>
+      </a>
+
+      <a href="Cadastro.html" class="module-card">
+        <div class="module-icon"><i class="fa-solid fa-pen-to-square"></i></div>
+        <div class="module-title">Cadastro</div>
+        <div class="module-desc">Manutenção e parâmetros gerais de cadastros do sistema.</div>
+      </a>
+    </div>
+
+    <!-- Campo de Status das Importações Dividido em Partes -->
+    <div class="import-status-card">
+      <h2 class="section-title" style="margin-bottom: 5px;">
+        <i class="fa-solid fa-clock-rotate-left"></i> Status das Últimas Importações
+      </h2>
+      <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Data e hora em que os arquivos de dados foram atualizados pela última vez.</p>
+
+      <!-- Grupo 1: Clientes -->
+      <div class="import-group">
+        <div class="import-group-title"><i class="fa-solid fa-users"></i> Atualizações de Clientes</div>
+        <div class="import-grid">
+          <div class="import-item">
+            <div class="import-item-title"><i class="fa-solid fa-address-book"></i> Base de Clientes</div>
+            <div id="dt-clientes" class="import-item-empty">Carregando...</div>
+          </div>
+          <div class="import-item">
+            <div class="import-item-title"><i class="fa-solid fa-user-check"></i> Clientes Ativos</div>
+            <div id="dt-clientes_ativos" class="import-item-empty">Carregando...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grupo 2: Meta de Volume -->
+      <div class="import-group">
+        <div class="import-group-title"><i class="fa-solid fa-boxes-stacked"></i> Meta de Volume</div>
+        <div class="import-grid">
+          <div class="import-item">
+            <div class="import-item-title"><i class="fa-solid fa-box"></i> Base de Produtos</div>
+            <div id="dt-produtos" class="import-item-empty">Carregando...</div>
+          </div>
+          <div class="import-item">
+            <div class="import-item-title"><i class="fa-solid fa-history"></i> Base Histórica</div>
+            <div id="dt-historico" class="import-item-empty">Carregando...</div>
+          </div>
+          <div class="import-item">
+            <div class="import-item-title"><i class="fa-solid fa-file-circle-check"></i> Meta CIA Volume</div>
+            <div id="dt-metas_cia_volume" class="import-item-empty">Carregando...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grupo 3: Meta de Cobertura -->
+      <div class="import-group">
+        <div class="import-group-title"><i class="fa-solid fa-bullseye"></i> Meta de Cobertura</div>
+        <div class="import-grid">
+          <div class="import-item">
+            <div class="import-item-title"><i class="fa-solid fa-diagram-project"></i> Master Cross Cobertura</div>
+            <div id="dt-master_cobertura" class="import-item-empty">Carregando...</div>
+          </div>
+          <div class="import-item">
+            <div class="import-item-title"><i class="fa-solid fa-file-shield"></i> Meta CIA Cobertura</div>
+            <div id="dt-metas_cia_cobertura" class="import-item-empty">Carregando...</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Rodapé -->
+  <div id="footer-container"></div>
+
+  <script>
+    async function carregarLayout() {
+      try {
+        const resHeader = await fetch('Layout/Cabecalho/header.html');
+        if (resHeader.ok) document.getElementById('header-container').innerHTML = await resHeader.text();
+
+        const resFooter = await fetch('Layout/Rodape/footer.html');
+        if (resFooter.ok) document.getElementById('footer-container').innerHTML = await resFooter.text();
+      } catch (err) {
+        console.error('Erro ao carregar layout:', err);
+      }
+    }
+
+    async function carregarUltimasImportacoes() {
+      try {
+        const res = await fetch('/api/import/ultimas-datas');
+        const data = await res.json();
+
+        if (data.success && data.datas) {
+          Object.keys(data.datas).forEach(tipo => {
+            const el = document.getElementById(`dt-${tipo}`);
+            if (el && data.datas[tipo]) {
+              const dt = new Date(data.datas[tipo]);
+              el.className = 'import-item-date';
+              el.innerText = dt.toLocaleString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+            }
+          });
+
+          document.querySelectorAll('.import-item-empty').forEach(el => {
+            if (el.innerText === 'Carregando...') {
+              el.innerText = 'Nenhuma importação registrada';
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Erro ao carregar datas de importação:', err);
+      }
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('usuarioLogado');
+      window.location.href = 'index.html';
+    }
+
+    window.onload = () => {
+      carregarLayout();
+      carregarUltimasImportacoes();
+    };
+  </script>
+</body>
+</html>
