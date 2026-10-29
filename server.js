@@ -956,7 +956,7 @@ app.post('/api/metas/volume/salvar', async (req, res) => {
 });
 
 // ==========================================
-// 7. EXPORTAÇÃO: Gerar Dados no formato METAS OUT.csv (Ordenado por VENDEDOR)
+// 7. EXPORTAÇÃO: Gerar Dados no formato METAS OUT.csv (Ordenado por VENDEDOR, sem Meta CIA = 0)
 // ==========================================
 app.get('/api/metas/volume/exportar', async (req, res) => {
   let client;
@@ -977,13 +977,15 @@ app.get('/api/metas/volume/exportar', async (req, res) => {
     // Ordena explicitamente os vendedores em ordem numérica crescente (101, 102, 103...)
     todosVendedores.sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
 
+    // Busca SOMENTE os produtos que possuem Meta da CIA maior que zero (> 0)
     const queryProdutos = await client.query(`
       SELECT 
         TRIM(m."Material") AS "Material",
         ROUND(SUM(m."Meta")) AS "Meta_Total"
       FROM public."MG_Meta_Vol_Cia" m
-      WHERE m."Meta" > 0
+      WHERE m."Meta" IS NOT NULL AND m."Meta" > 0
       GROUP BY TRIM(m."Material")
+      HAVING SUM(m."Meta") > 0
       ORDER BY TRIM(m."Material") ASC;
     `);
 
