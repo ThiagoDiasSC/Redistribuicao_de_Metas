@@ -764,7 +764,7 @@ app.post('/api/import/metas-cia-volume', upload.single('file'), async (req, res)
 });
 
 // ==========================================
-// 5. CONSULTA DE METAS: Distribuição Proporcional Usando UMB Arredondado
+// 5. CONSULTA DE METAS: Distribuição Proporcional (Filtra Meta CIA > 0)
 // ==========================================
 app.get('/api/metas/volume', async (req, res) => {
   const codRevenda = req.query.revenda || '10';
@@ -776,6 +776,7 @@ app.get('/api/metas/volume', async (req, res) => {
   try {
     client = await pool.connect();
 
+    // Filtra estritamente apenas os materiais cuja soma das Metas da CIA seja estritamente maior que 0
     const queryMetasCia = await client.query(`
       SELECT 
         TRIM(m."Material") AS "Material",
@@ -796,8 +797,9 @@ app.get('/api/metas/volume', async (req, res) => {
       FROM public."MG_Meta_Vol_Cia" m
       LEFT JOIN public."MG_Base_Prod" p 
         ON LTRIM(TRIM(p."Reduzido"), '0') = LTRIM(TRIM(m."Material"), '0')
-      WHERE TRIM(m."Cliente") = $1 AND m."Meta" > 0
+      WHERE TRIM(m."Cliente") = $1 AND m."Meta" IS NOT NULL AND m."Meta" > 0
       GROUP BY TRIM(m."Material")
+      HAVING SUM(m."Meta") > 0
       ORDER BY TRIM(m."Material") ASC;
     `, [clienteCia]);
 
@@ -838,6 +840,9 @@ app.get('/api/metas/volume', async (req, res) => {
       .map(p => {
         const mat = String(p.Material).trim();
         const metaTotalCia = Math.round(parseFloat(p.Meta_Total || 0));
+
+        if (metaTotalCia <= 0) return null; // Filtro adicional de segurança
+
         const fatConv1 = parseFloat(p.Fat_Conv_1 || 1);
         const umbArredondado = fatConv1 > 0 ? Math.ceil(metaTotalCia / fatConv1) : metaTotalCia;
         const metasVendedores = {};
@@ -901,7 +906,7 @@ app.get('/api/metas/volume', async (req, res) => {
           metasVendedores
         };
       })
-      .filter(p => p.Meta_Total > 0);
+      .filter(p => p !== null && p.Meta_Total > 0);
 
     return res.json({
       success: true,
@@ -956,7 +961,7 @@ app.post('/api/metas/volume/salvar', async (req, res) => {
 });
 
 // ==========================================
-// 7. EXPORTAÇÃO: Gerar Dados no formato METAS OUT.csv (Ordenado por VENDEDOR, sem Meta CIA = 0)
+// 7. EXPORTAÇÃO: Gerar Dados no formato METAS OUT.csv (Sem Meta CIA = 0)
 // ==========================================
 app.get('/api/metas/volume/exportar', async (req, res) => {
   let client;
@@ -974,10 +979,10 @@ app.get('/api/metas/volume/exportar', async (req, res) => {
       }
     });
 
-    // Ordena explicitamente os vendedores em ordem numérica crescente (101, 102, 103...)
+    // Ordena os vendedores em ordem crescente (101, 102, 103...)
     todosVendedores.sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
 
-    // Busca SOMENTE os produtos que possuem Meta da CIA maior que zero (> 0)
+    // Busca apenas produtos com Meta CIA estritamente maior que zero (> 0)
     const queryProdutos = await client.query(`
       SELECT 
         TRIM(m."Material") AS "Material",
@@ -1004,7 +1009,6 @@ app.get('/api/metas/volume/exportar', async (req, res) => {
     const exportRows = [];
     const layoutHeader = '9999;99;XXX;999999;999999999;99;99999;9999999;";"';
 
-    // LAÇOS ORDENADOS POR VENDEDOR PRIMEIRO
     todosVendedores.forEach(vend => {
       const vendClean = String(vend).trim();
       const vendPadrao = vendClean.padStart(3, '0');
@@ -1013,19 +1017,25 @@ app.get('/api/metas/volume/exportar', async (req, res) => {
         const matClean = String(prod.Material).trim();
         const materialPadrao = matClean.padStart(6, '0');
         const metaCia = Math.round(parseFloat(prod.Meta_Total || 0));
-        const metaVend = salvasMap[`${matClean}_${vendClean}`] || 0;
 
-        exportRows.push({
-          ano,
-          mes,
-          vendedor: vendPadrao,
-          material: materialPadrao,
-          metaVendedor: metaVend,
-          campo5: 0,
-          campo6: 0,
-          metaCia: metaCia,
-          linhaFormatada: `${ano};${mes};${vendPadrao};${materialPadrao};${metaVend};0;0;${metaCia};";"`
-        });
+        // Só processa se a meta da CIA for estritamente positiva
+        if (metaCia > 0) {
+          const metaVend = salvasMap[`${matClean}_${vendClean}`] !== undefined 
+            ? salvasMap[`${matClean}_${vendClean}`] 
+            : 0;
+
+          exportRows.push({
+            ano,
+            mes,
+            vendedor: vendPadrao,
+            material: materialPadrao,
+            metaVendedor: metaVend,
+            campo5: 0,
+            campo6: 0,
+            metaCia: metaCia,
+            linhaFormatada: `${ano};${mes};${vendPadrao};${materialPadrao};${metaVend};0;0;${metaCia};";"`
+          });
+        }
       });
     });
 
