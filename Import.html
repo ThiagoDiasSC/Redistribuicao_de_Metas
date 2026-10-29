@@ -185,46 +185,50 @@
       </div>
     </div>
 
-    <!-- SUBMENU 3: META DE COBERTURA -->
-    <div id="subCobertura" class="card tab-import-content" style="display: none;">
-      <div style="margin-bottom: 20px;">
-        <h3 style="font-size: 18px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px;">Importação de Arquivos - Meta de Cobertura</h3>
-        <p style="font-size: 13px; color: #666;">Importe individualmente cada um dos arquivos necessários para processar a meta de cobertura.</p>
-      </div>
+   <!-- SUBMENU 3: META DE COBERTURA -->
+<div id="subCobertura" class="card tab-import-content" style="display: none;">
+  <div style="margin-bottom: 20px;">
+    <h3 style="font-size: 18px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px;">Importação de Arquivos - Meta de Cobertura</h3>
+    <p style="font-size: 13px; color: #666;">Importe individualmente cada um dos arquivos necessários para processar a meta de cobertura.</p>
+  </div>
 
-      <div class="import-grid-2">
-        <div class="client-import-box grid-card">
-          <div class="client-import-icon"><i class="fa-solid fa-diagram-project"></i></div>
-          <h4 class="client-import-title">Base do Master Cross</h4>
-          <p class="client-import-sub">Selecione o arquivo da base Master Cross (.xlsx, .csv)</p>
-          <button type="button" class="btn-select-file" onclick="document.getElementById('fileMasterCobInput').click()"><i class="fa-solid fa-paperclip"></i> Selecionar Arquivo</button>
-          <input type="file" id="fileMasterCobInput" class="file-input-hidden" accept=".csv, .xlsx, .xls" onchange="atualizarStatusArquivoGeneric(this, 'fileMasterCobName', 'btnProcessarMasterCob')">
-          <div id="fileMasterCobName" class="file-selected-name" style="display: none;"></div>
+  <div class="import-grid-2">
+    <!-- Card 1: Base do Master Cross -->
+    <div class="client-import-box grid-card">
+      <div class="client-import-icon"><i class="fa-solid fa-diagram-project"></i></div>
+      <h4 class="client-import-title">Base do Master Cross</h4>
+      <p class="client-import-sub">Selecione o arquivo da base Master Cross (.xlsx, .csv)</p>
+      <button type="button" class="btn-select-file" onclick="document.getElementById('fileMasterCobInput').click()"><i class="fa-solid fa-paperclip"></i> Selecionar Arquivo</button>
+      <input type="file" id="fileMasterCobInput" class="file-input-hidden" accept=".csv, .xlsx, .xls" onchange="atualizarStatusArquivoGeneric(this, 'fileMasterCobName', 'btnProcessarMasterCob')">
+      <div id="fileMasterCobName" class="file-selected-name" style="display: none;"></div>
 
-          <button type="button" id="btnProcessarMasterCob" class="btn-process-file" disabled onclick="executarImportacaoGenerica('fileMasterCobInput', '/api/import/master-cobertura', 'progressMasterCobContainer', 'progressMasterCobFill', 'progressMasterCobText', 'summaryMasterCobContainer', 'summaryMasterCobTitle', 'statMasterCobVerificadas', 'statMasterCobAtualizadas', 'statMasterCobImportadas', 'btnProcessarMasterCob', 'Processar Master Cross')">
-            <i class="fa-solid fa-cloud-arrow-up"></i> Processar Master Cross
-          </button>
-          <div id="progressMasterCobContainer" class="progress-container" style="display: none;"><div class="progress-bar-bg"><div id="progressMasterCobFill" class="progress-bar-fill" style="width: 0%;"></div></div><div id="progressMasterCobText" class="progress-text">Processando... 0%</div></div>
-          <div id="summaryMasterCobContainer" class="summary-box" style="display: none;"><div id="summaryMasterCobTitle" class="summary-title"></div><div class="summary-grid"><div class="summary-card stat-verified"><span class="stat-number" id="statMasterCobVerificadas">0</span><span class="stat-label">Total Lidos</span></div><div class="summary-card stat-updated"><span class="stat-number" id="statMasterCobAtualizadas">0</span><span class="stat-label">Atualizados</span></div><div class="summary-card stat-imported"><span class="stat-number" id="statMasterCobImportadas">0</span><span class="stat-label">Inseridos</span></div></div></div>
-        </div>
+      <button type="button" id="btnProcessarMasterCob" class="btn-process-file" disabled onclick="executarImportacaoGenerica('fileMasterCobInput', '/api/import/master-cobertura', 'progressMasterCobContainer', 'progressMasterCobFill', 'progressMasterCobText', 'summaryMasterCobContainer', 'summaryMasterCobTitle', 'statMasterCobVerificadas', 'statMasterCobAtualizadas', 'statMasterCobImportadas', 'btnProcessarMasterCob', 'Processar Master Cross')">
+        <i class="fa-solid fa-cloud-arrow-up"></i> Processar Master Cross
+      </button>
+      <div id="progressMasterCobContainer" class="progress-container" style="display: none;"><div class="progress-bar-bg"><div id="progressMasterCobFill" class="progress-bar-fill" style="width: 0%;"></div></div><div id="progressMasterCobText" class="progress-text">Processando... 0%</div></div>
+      <div id="summaryMasterCobContainer" class="summary-box" style="display: none;"><div id="summaryMasterCobTitle" class="summary-title"></div><div class="summary-grid"><div class="summary-card stat-verified"><span class="stat-number" id="statMasterCobVerificadas">0</span><span class="stat-label">Total Lidos</span></div><div class="summary-card stat-updated"><span class="stat-number" id="statMasterCobAtualizadas">0</span><span class="stat-label">Atualizados</span></div><div class="summary-card stat-imported"><span class="stat-number" id="statMasterCobImportadas">0</span><span class="stat-label">Inseridos</span></div></div></div>
+    </div>
 
-        <div class="client-import-box grid-card">
-          <div class="client-import-icon"><i class="fa-solid fa-file-circle-check"></i></div>
-          <h4 class="client-import-title">Arquivo de Metas da CIA.</h4>
-          <p class="client-import-sub">Selecione o arquivo oficial de metas enviadas pela CIA (.xlsx, .csv)</p>
-          <button type="button" class="btn-select-file" onclick="document.getElementById('fileMetaCobCiaInput').click()"><i class="fa-solid fa-paperclip"></i> Selecionar Arquivo</button>
-          <input type="file" id="fileMetaCobCiaInput" class="file-input-hidden" accept=".csv, .xlsx, .xls" onchange="atualizarStatusArquivoGeneric(this, 'fileMetaCobCiaName', 'btnProcessarMetaCobCia')">
-          <div id="fileMetaCobCiaName" class="file-selected-name" style="display: none;"></div>
+    <!-- Card 2: Arquivo de Metas da CIA (Atualizado com suporte a .xlsm) -->
+    <div class="client-import-box grid-card">
+      <div class="client-import-icon"><i class="fa-solid fa-file-circle-check"></i></div>
+      <h4 class="client-import-title">Arquivo de Metas da CIA.</h4>
+      <p class="client-import-sub">Selecione o arquivo oficial de metas enviadas pela CIA (.xlsm, .xlsx, .csv)</p>
+      <button type="button" class="btn-select-file" onclick="document.getElementById('fileMetaCobCiaInput').click()"><i class="fa-solid fa-paperclip"></i> Selecionar Arquivo</button>
+      
+      <!-- Adicionado .xlsm no atributo accept -->
+      <input type="file" id="fileMetaCobCiaInput" class="file-input-hidden" accept=".csv, .xlsx, .xls, .xlsm" onchange="atualizarStatusArquivoGeneric(this, 'fileMetaCobCiaName', 'btnProcessarMetaCobCia')">
+      <div id="fileMetaCobCiaName" class="file-selected-name" style="display: none;"></div>
 
-          <button type="button" id="btnProcessarMetaCobCia" class="btn-process-file" disabled onclick="executarImportacaoGenerica('fileMetaCobCiaInput', '/api/import/metas-cia-cobertura', 'progressMetaCobCiaContainer', 'progressMetaCobCiaFill', 'progressMetaCobCiaText', 'summaryMetaCobCiaContainer', 'summaryMetaCobCiaTitle', 'statMetaCobCiaVerificadas', 'statMetaCobCiaAtualizadas', 'statMetaCobCiaImportadas', 'btnProcessarMetaCobCia', 'Processar Metas da CIA')">
-            <i class="fa-solid fa-cloud-arrow-up"></i> Processar Metas da CIA
-          </button>
-          <div id="progressMetaCobCiaContainer" class="progress-container" style="display: none;"><div class="progress-bar-bg"><div id="progressMetaCobCiaFill" class="progress-bar-fill" style="width: 0%;"></div></div><div id="progressMetaCobCiaText" class="progress-text">Processando... 0%</div></div>
-          <div id="summaryMetaCobCiaContainer" class="summary-box" style="display: none;"><div id="summaryMetaCobCiaTitle" class="summary-title"></div><div class="summary-grid"><div class="summary-card stat-verified"><span class="stat-number" id="statMetaCobCiaVerificadas">0</span><span class="stat-label">Total Lidos</span></div><div class="summary-card stat-updated"><span class="stat-number" id="statMetaCobCiaAtualizadas">0</span><span class="stat-label">Atualizados</span></div><div class="summary-card stat-imported"><span class="stat-number" id="statMetaCobCiaImportadas">0</span><span class="stat-label">Inseridos</span></div></div></div>
-        </div>
-      </div>
+      <button type="button" id="btnProcessarMetaCobCia" class="btn-process-file" disabled onclick="executarImportacaoGenerica('fileMetaCobCiaInput', '/api/import/metas-cia-cobertura', 'progressMetaCobCiaContainer', 'progressMetaCobCiaFill', 'progressMetaCobCiaText', 'summaryMetaCobCiaContainer', 'summaryMetaCobCiaTitle', 'statMetaCobCiaVerificadas', 'statMetaCobCiaAtualizadas', 'statMetaCobCiaImportadas', 'btnProcessarMetaCobCia', 'Processar Metas da CIA')">
+        <i class="fa-solid fa-cloud-arrow-up"></i> Processar Metas da CIA
+      </button>
+      
+      <div id="progressMetaCobCiaContainer" class="progress-container" style="display: none;"><div class="progress-bar-bg"><div id="progressMetaCobCiaFill" class="progress-bar-fill" style="width: 0%;"></div></div><div id="progressMetaCobCiaText" class="progress-text">Processando... 0%</div></div>
+      <div id="summaryMetaCobCiaContainer" class="summary-box" style="display: none;"><div id="summaryMetaCobCiaTitle" class="summary-title"></div><div class="summary-grid"><div class="summary-card stat-verified"><span class="stat-number" id="statMetaCobCiaVerificadas">0</span><span class="stat-label">Total Lidos</span></div><div class="summary-card stat-updated"><span class="stat-number" id="statMetaCobCiaAtualizadas">0</span><span class="stat-label">Atualizados</span></div><div class="summary-card stat-imported"><span class="stat-number" id="statMetaCobCiaImportadas">0</span><span class="stat-label">Inseridos</span></div></div></div>
     </div>
   </div>
+</div>
 
   <!-- Rodapé -->
   <div id="footer-container"></div>
@@ -368,6 +372,37 @@
     }
 
     window.onload = carregarLayout;
+
+    async function enviarMetasCoberturaCia(e) {
+      e.preventDefault();
+      const fileInput = document.getElementById('fileMetasCobCia');
+      if (!fileInput || !fileInput.files.length) {
+       return alert('Por favor, selecione o ficheiro de metas de cobertura.');
+      }
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      try {
+        const response = await fetch('/api/import/metas-cia-cobertura', {
+           method: 'POST',
+           body: formData
+         });
+
+         const data = await response.json();
+         if (data.success) {
+           alert(data.message);
+           if (typeof carregarUltimasDatasImportacao === 'function') {
+            carregarUltimasDatasImportacao();
+          }
+        } else {
+          alert('Erro ao importar: ' + data.message);
+        }
+      } catch (err) {
+      console.error('Erro na ligação:', err);
+       alert('Erro de ligação ao enviar o ficheiro de cobertura.');
+      }
+    }
   </script>
 </body>
 </html>

@@ -213,7 +213,7 @@ app.post('/api/import/clientes', upload.single('file'), async (req, res) => {
     client = await pool.connect();
     let registros = [];
 
-    if (originalName.endsWith('.xlsx') || originalName.endsWith('.xls')) {
+    if (originalName.endsWith('.xlsx') || originalName.endsWith('.xls') || originalName.endsWith('.xlsm')) {
       const workbook = xlsx.readFile(filePath);
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rawRows = xlsx.utils.sheet_to_json(sheet, { defval: null });
@@ -328,7 +328,8 @@ app.post('/api/import/clientes', upload.single('file'), async (req, res) => {
       message: 'Base de Clientes sincronizada com sucesso!',
       totalLidos: registros.length,
       atualizados: resUpdate.rowCount,
-      novos: resInsert.rowCount
+      novos: resInsert.rowCount,
+      inseridos: resInsert.rowCount
     });
 
   } catch (error) {
@@ -381,7 +382,7 @@ app.post('/api/import/produtos', upload.single('file'), async (req, res) => {
     client = await pool.connect();
     let registros = [];
 
-    if (originalName.endsWith('.xlsx') || originalName.endsWith('.xls')) {
+    if (originalName.endsWith('.xlsx') || originalName.endsWith('.xls') || originalName.endsWith('.xlsm')) {
       const workbook = xlsx.readFile(filePath);
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rawRows = xlsx.utils.sheet_to_json(sheet, { defval: null });
@@ -479,7 +480,8 @@ app.post('/api/import/produtos', upload.single('file'), async (req, res) => {
       message: 'Base de Produtos sincronizada com sucesso!',
       totalLidos: registros.length,
       atualizados: resUpdate.rowCount,
-      novos: resInsert.rowCount
+      novos: resInsert.rowCount,
+      inseridos: resInsert.rowCount
     });
 
   } catch (error) {
@@ -498,7 +500,8 @@ app.post('/api/import/historico-mastercross', upload.single('file'), async (req,
   if (!req.file) return res.status(400).json({ success: false, message: 'Nenhum arquivo enviado.' });
 
   const filePath = req.file.path;
-  const isExcel = req.file.originalname.toLowerCase().endsWith('.xlsx') || req.file.originalname.toLowerCase().endsWith('.xls');
+  const originalName = req.file.originalname.toLowerCase();
+  const isExcel = originalName.endsWith('.xlsx') || originalName.endsWith('.xls') || originalName.endsWith('.xlsm');
   let client;
 
   try {
@@ -632,7 +635,8 @@ app.post('/api/import/historico-mastercross', upload.single('file'), async (req,
       message: 'Base Histórica importada com sucesso!',
       totalLidos: registrosParaInserir.length,
       atualizados: 0,
-      novos: registrosParaInserir.length
+      novos: registrosParaInserir.length,
+      inseridos: registrosParaInserir.length
     });
 
   } catch (error) {
@@ -645,12 +649,13 @@ app.post('/api/import/historico-mastercross', upload.single('file'), async (req,
 });
 
 // ==========================================
-// 4. IMPORTAÇÃO: Metas da CIA (TRUNCATE)
+// 4. IMPORTAÇÃO: Metas da CIA Volume (TRUNCATE)
 // ==========================================
 app.post('/api/import/metas-cia-volume', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'Nenhum arquivo enviado.' });
   const filePath = req.file.path;
-  const isExcel = req.file.originalname.toLowerCase().endsWith('.xlsx') || req.file.originalname.toLowerCase().endsWith('.xls');
+  const originalName = req.file.originalname.toLowerCase();
+  const isExcel = originalName.endsWith('.xlsx') || originalName.endsWith('.xls') || originalName.endsWith('.xlsm');
   let client;
 
   try {
@@ -748,10 +753,11 @@ app.post('/api/import/metas-cia-volume', upload.single('file'), async (req, res)
 
     return res.json({
       success: true,
-      message: 'Meta da CIA importada com sucesso!',
+      message: 'Meta de Volume da CIA importada com sucesso!',
       totalLidos: registrosParaInserir.length,
       atualizados: 0,
-      novos: registrosParaInserir.length
+      novos: registrosParaInserir.length,
+      inseridos: registrosParaInserir.length
     });
 
   } catch (error) {
@@ -764,7 +770,139 @@ app.post('/api/import/metas-cia-volume', upload.single('file'), async (req, res)
 });
 
 // ==========================================
-// 5. CONSULTA DE METAS: Distribuição Proporcional (Filtra Meta CIA > 0)
+// 5. IMPORTAÇÃO: Metas de Cobertura CIA (Consolidação de Múltiplas Abas)
+// ==========================================
+app.post('/api/import/metas-cia-cobertura', upload.single('file'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: 'Nenhum arquivo enviado.' });
+  }
+
+  const filePath = req.file.path;
+  let client;
+
+  try {
+    client = await pool.connect();
+
+    // 1. Lê a planilha Excel
+    const workbook = xlsx.readFile(filePath);
+    const registrosConsolidados = [];
+
+    // 2. Percorre todas as abas da planilha (FABRICIANO, VALADARES, ITAOBIM, etc.)
+    workbook.SheetNames.forEach(sheetName => {
+      const sheet = workbook.Sheets[sheetName];
+      const rawRows = xlsx.utils.sheet_to_json(sheet, { defval: '' });
+
+      rawRows.forEach(r => {
+        const obj = {};
+        Object.keys(r).forEach(k => {
+          obj[k.trim().toUpperCase()] = r[k];
+        });
+
+        const cliente = obj['CLIENTE'] !== undefined ? String(obj['CLIENTE']).trim() : '';
+        const material = obj['MATERIAL'] !== undefined ? String(obj['MATERIAL']).trim() : '';
+        const familia = obj['FAMÍLIA'] || obj['FAMILIA'] || '';
+        const embalagem = obj['EMBALAGEM'] || '';
+        const packtype = obj['PACKTYPE'] || obj['PACKTYPE '] || '';
+        const marca = obj['MARCA'] || '';
+        const sabor = obj['SABOR'] || '';
+
+        let metaVal = 0;
+        const rawMeta = obj['META'];
+        if (rawMeta !== undefined && rawMeta !== null && rawMeta !== '') {
+          if (typeof rawMeta === 'number') {
+            metaVal = rawMeta;
+          } else {
+            const parsed = parseFloat(String(rawMeta).replace(',', '.'));
+            metaVal = isNaN(parsed) ? 0 : parsed;
+          }
+        }
+
+        if (cliente || material) {
+          registrosConsolidados.push([
+            cliente,
+            material,
+            familia,
+            embalagem,
+            packtype,
+            marca,
+            sabor,
+            metaVal
+          ]);
+        }
+      });
+    });
+
+    if (registrosConsolidados.length === 0) {
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      return res.status(400).json({ success: false, message: 'Nenhum dado válido encontrado nas abas da planilha.' });
+    }
+
+    await client.query('BEGIN');
+
+    // Garantia da existência da tabela
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public."MG_Meta_Cob_Cia" (
+        "Cliente" TEXT,
+        "Material" TEXT,
+        "Familia" TEXT,
+        "Embalagem" TEXT,
+        "Packtype" TEXT,
+        "Marca" TEXT,
+        "Sabor" TEXT,
+        "Meta" NUMERIC(15, 4),
+        "Data_Importacao" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Limpa a tabela antes de salvar os novos dados consolidados (TRUNCATE)
+    await client.query('TRUNCATE TABLE public."MG_Meta_Cob_Cia";');
+
+    const batchSize = Math.max(1, Math.floor(30000 / 8));
+    for (let i = 0; i < registrosConsolidados.length; i += batchSize) {
+      const chunk = registrosConsolidados.slice(i, i + batchSize);
+      const valuesPlaceholders = [];
+      const flatParams = [];
+      let paramIdx = 1;
+
+      for (const item of chunk) {
+        valuesPlaceholders.push(`(${item.map(() => `$${paramIdx++}`).join(', ')})`);
+        flatParams.push(...item);
+      }
+
+      await client.query(`
+        INSERT INTO public."MG_Meta_Cob_Cia" (
+          "Cliente", "Material", "Familia", "Embalagem", "Packtype", "Marca", "Sabor", "Meta"
+        ) VALUES ${valuesPlaceholders.join(', ')}
+      `, flatParams);
+    }
+
+    await registrarUltimaImportacao(client, 'metas_cia_cobertura');
+
+    await client.query('COMMIT');
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+    // RETORNO COMPATÍVEL COM A FUNÇÃO GENÉRICA DO FRONTEND:
+    return res.json({
+      success: true,
+      message: `Meta de Cobertura da CIA importada com sucesso! ${registrosConsolidados.length} registros inseridos das ${workbook.SheetNames.length} abas.`,
+      totalLidos: registrosConsolidados.length,
+      atualizados: 0,
+      novos: registrosConsolidados.length,
+      inseridos: registrosConsolidados.length
+    });
+
+  } catch (error) {
+    if (client) await client.query('ROLLBACK');
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    console.error('Erro na importação de cobertura:', error);
+    return res.status(500).json({ success: false, message: 'Erro ao processar arquivo: ' + error.message });
+  } finally {
+    if (client) client.release();
+  }
+});
+
+// ==========================================
+// 6. CONSULTA DE METAS: Distribuição Proporcional (Filtra Meta CIA > 0)
 // ==========================================
 app.get('/api/metas/volume', async (req, res) => {
   const codRevenda = req.query.revenda || '10';
@@ -776,7 +914,6 @@ app.get('/api/metas/volume', async (req, res) => {
   try {
     client = await pool.connect();
 
-    // Filtra estritamente apenas os materiais cuja soma das Metas da CIA seja estritamente maior que 0
     const queryMetasCia = await client.query(`
       SELECT 
         TRIM(m."Material") AS "Material",
@@ -841,7 +978,7 @@ app.get('/api/metas/volume', async (req, res) => {
         const mat = String(p.Material).trim();
         const metaTotalCia = Math.round(parseFloat(p.Meta_Total || 0));
 
-        if (metaTotalCia <= 0) return null; // Filtro adicional de segurança
+        if (metaTotalCia <= 0) return null;
 
         const fatConv1 = parseFloat(p.Fat_Conv_1 || 1);
         const umbArredondado = fatConv1 > 0 ? Math.ceil(metaTotalCia / fatConv1) : metaTotalCia;
@@ -924,7 +1061,7 @@ app.get('/api/metas/volume', async (req, res) => {
 });
 
 // ==========================================
-// 6. SALVAR DISTRIBUIÇÃO DE METAS
+// 7. SALVAR DISTRIBUIÇÃO DE METAS
 // ==========================================
 app.post('/api/metas/volume/salvar', async (req, res) => {
   const { revenda, distribuicao } = req.body; 
@@ -961,7 +1098,7 @@ app.post('/api/metas/volume/salvar', async (req, res) => {
 });
 
 // ==========================================
-// 7. EXPORTAÇÃO: Gerar Dados no formato METAS OUT.csv (Sem Meta CIA = 0)
+// 8. EXPORTAÇÃO: Gerar Dados no formato METAS OUT.csv (Ordenado por VENDEDOR, sem Meta CIA = 0)
 // ==========================================
 app.get('/api/metas/volume/exportar', async (req, res) => {
   let client;
@@ -979,7 +1116,7 @@ app.get('/api/metas/volume/exportar', async (req, res) => {
       }
     });
 
-    // Ordena os vendedores em ordem crescente (101, 102, 103...)
+    // Ordena os vendedores em ordem numérica crescente (101, 102, 103...)
     todosVendedores.sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
 
     // Busca apenas produtos com Meta CIA estritamente maior que zero (> 0)
@@ -1009,6 +1146,7 @@ app.get('/api/metas/volume/exportar', async (req, res) => {
     const exportRows = [];
     const layoutHeader = '9999;99;XXX;999999;999999999;99;99999;9999999;";"';
 
+    // LAÇOS ORDENADOS POR VENDEDOR PRIMEIRO
     todosVendedores.forEach(vend => {
       const vendClean = String(vend).trim();
       const vendPadrao = vendClean.padStart(3, '0');
@@ -1018,7 +1156,6 @@ app.get('/api/metas/volume/exportar', async (req, res) => {
         const materialPadrao = matClean.padStart(6, '0');
         const metaCia = Math.round(parseFloat(prod.Meta_Total || 0));
 
-        // Só processa se a meta da CIA for estritamente positiva
         if (metaCia > 0) {
           const metaVend = salvasMap[`${matClean}_${vendClean}`] !== undefined 
             ? salvasMap[`${matClean}_${vendClean}`] 
