@@ -956,7 +956,7 @@ app.post('/api/metas/volume/salvar', async (req, res) => {
 });
 
 // ==========================================
-// 7. EXPORTAÇÃO: Gerar Dados no formato METAS OUT.csv
+// 7. EXPORTAÇÃO: Gerar Dados no formato METAS OUT.csv (Ordenado por VENDEDOR)
 // ==========================================
 app.get('/api/metas/volume/exportar', async (req, res) => {
   let client;
@@ -973,6 +973,9 @@ app.get('/api/metas/volume/exportar', async (req, res) => {
         todosVendedores.push(...MAPA_REVENDA_VENDEDORES[rev]);
       }
     });
+
+    // Ordena explicitamente os vendedores em ordem numérica crescente (101, 102, 103...)
+    todosVendedores.sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
 
     const queryProdutos = await client.query(`
       SELECT 
@@ -999,14 +1002,15 @@ app.get('/api/metas/volume/exportar', async (req, res) => {
     const exportRows = [];
     const layoutHeader = '9999;99;XXX;999999;999999999;99;99999;9999999;";"';
 
-    queryProdutos.rows.forEach(prod => {
-      const matClean = String(prod.Material).trim();
-      const materialPadrao = matClean.padStart(6, '0');
-      const metaCia = Math.round(parseFloat(prod.Meta_Total || 0));
+    // LAÇOS ORDENADOS POR VENDEDOR PRIMEIRO
+    todosVendedores.forEach(vend => {
+      const vendClean = String(vend).trim();
+      const vendPadrao = vendClean.padStart(3, '0');
 
-      todosVendedores.forEach(vend => {
-        const vendClean = String(vend).trim();
-        const vendPadrao = vendClean.padStart(3, '0');
+      queryProdutos.rows.forEach(prod => {
+        const matClean = String(prod.Material).trim();
+        const materialPadrao = matClean.padStart(6, '0');
+        const metaCia = Math.round(parseFloat(prod.Meta_Total || 0));
         const metaVend = salvasMap[`${matClean}_${vendClean}`] || 0;
 
         exportRows.push({
