@@ -53,7 +53,7 @@ const MAPA_REVENDA_CLIENTECIA = {
   '60': '224209'
 };
 
-// Mapeamento das Mesas/Gerentes para Lista de Vendedores
+// Mapeamento das Mesas/Gerentes para Lista de Vendedores (Todas as Revendas)
 const MAPA_REVENDA_VENDEDORES = {
   '10': ['101', '102', '103', '104', '105', '106', '107', '201', '202', '203'],
   '20': ['251', '252', '253', '254', '255', '256'],
@@ -649,7 +649,7 @@ app.post('/api/import/historico-mastercross', upload.single('file'), async (req,
 });
 
 // ==========================================
-// 4. IMPORTAÇÃO: Metas da CIA Volume (TRUNCATE)
+// 4. IMPORTAÇÃO: Metas da CIA Volume (TRUNCATE + RESET DA TABELA DISTRIBUÍDA)
 // ==========================================
 app.post('/api/import/metas-cia-volume', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'Nenhum arquivo enviado.' });
@@ -726,6 +726,10 @@ app.post('/api/import/metas-cia-volume', upload.single('file'), async (req, res)
     await client.query('BEGIN');
     await client.query('TRUNCATE TABLE public."MG_Meta_Vol_Cia";');
 
+    // EXCLUI TODAS AS DISTRIBUIÇÕES SALVAS ANTERIORMENTE PARA FORÇAR REDISTRIBUIÇÃO DO NOVO ARQUIVO DA CIA
+    await client.query('CREATE TABLE IF NOT EXISTS public."MG_Meta_Vol_Distribuida" ("Revenda" TEXT, "Material" TEXT, "Vendedor" TEXT, "Volume" NUMERIC(15, 4), PRIMARY KEY ("Revenda", "Material", "Vendedor"));');
+    await client.query('TRUNCATE TABLE public."MG_Meta_Vol_Distribuida";');
+
     const batchSize = Math.max(1, Math.floor(30000 / 14));
     for (let i = 0; i < registrosParaInserir.length; i += batchSize) {
       const chunk = registrosParaInserir.slice(i, i + batchSize);
@@ -753,7 +757,7 @@ app.post('/api/import/metas-cia-volume', upload.single('file'), async (req, res)
 
     return res.json({
       success: true,
-      message: 'Meta de Volume da CIA importada com sucesso!',
+      message: 'Meta de Volume da CIA importada com sucesso! As metas distribuídas anteriores foram resetadas para recálculo automático.',
       totalLidos: registrosParaInserir.length,
       atualizados: 0,
       novos: registrosParaInserir.length,
@@ -783,11 +787,9 @@ app.post('/api/import/metas-cia-cobertura', upload.single('file'), async (req, r
   try {
     client = await pool.connect();
 
-    // 1. Lê a planilha Excel
     const workbook = xlsx.readFile(filePath);
     const registrosConsolidados = [];
 
-    // 2. Percorre todas as abas da planilha (FABRICIANO, VALADARES, ITAOBIM, etc.)
     workbook.SheetNames.forEach(sheetName => {
       const sheet = workbook.Sheets[sheetName];
       const rawRows = xlsx.utils.sheet_to_json(sheet, { defval: '' });
@@ -839,7 +841,6 @@ app.post('/api/import/metas-cia-cobertura', upload.single('file'), async (req, r
 
     await client.query('BEGIN');
 
-    // Garantia da existência da tabela
     await client.query(`
       CREATE TABLE IF NOT EXISTS public."MG_Meta_Cob_Cia" (
         "Cliente" TEXT,
@@ -854,7 +855,6 @@ app.post('/api/import/metas-cia-cobertura', upload.single('file'), async (req, r
       );
     `);
 
-    // Limpa a tabela antes de salvar os novos dados consolidados (TRUNCATE)
     await client.query('TRUNCATE TABLE public."MG_Meta_Cob_Cia";');
 
     const batchSize = Math.max(1, Math.floor(30000 / 8));
@@ -881,7 +881,6 @@ app.post('/api/import/metas-cia-cobertura', upload.single('file'), async (req, r
     await client.query('COMMIT');
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
-    // RETORNO COMPATÍVEL COM A FUNÇÃO GENÉRICA DO FRONTEND:
     return res.json({
       success: true,
       message: `Meta de Cobertura da CIA importada com sucesso! ${registrosConsolidados.length} registros inseridos das ${workbook.SheetNames.length} abas.`,
@@ -902,7 +901,7 @@ app.post('/api/import/metas-cia-cobertura', upload.single('file'), async (req, r
 });
 
 // ==========================================
-// 6. CONSULTA DE METAS: Distribuição Proporcional (Filtra Meta CIA > 0)
+// 6. CONSULTA DE METAS: Distribuição Proporcional (Alocação Exata de 100%)
 // ==========================================
 app.get('/api/metas/volume', async (req, res) => {
   const codRevenda = req.query.revenda || '10';
@@ -982,6 +981,7 @@ app.get('/api/metas/volume', async (req, res) => {
 
         const fatConv1 = parseFloat(p.Fat_Conv_1 || 1);
         const umbArredondado = fatConv1 > 0 ? Math.ceil(metaTotalCia / fatConv1) : metaTotalCia;
+        const metaAlvo = umbArredondado;
         const metasVendedores = {};
 
         let temSalva = false;
@@ -994,15 +994,15 @@ app.get('/api/metas/volume', async (req, res) => {
             metasVendedores[v] = salvasMap[`${mat}_${v}`] !== undefined ? salvasMap[`${mat}_${v}`] : 0;
           });
         } else {
+          let somaPotencialMesa = 0;
+          listaVendedores.forEach(v => {
+            somaPotencialMesa += (mapaMediaMedia[mat] && mapaMediaMedia[mat][v]) ? mapaMediaMedia[mat][v] : 0;
+          });
+
           const rankingVendedores = [...listaVendedores].sort((a, b) => {
             const potA = (mapaMediaMedia[mat] && mapaMediaMedia[mat][a]) ? mapaMediaMedia[mat][a] : 0;
             const potB = (mapaMediaMedia[mat] && mapaMediaMedia[mat][b]) ? mapaMediaMedia[mat][b] : 0;
             return potB - potA;
-          });
-
-          let somaPotencialProduto = 0;
-          listaVendedores.forEach(v => {
-            somaPotencialProduto += (mapaMediaMedia[mat] && mapaMediaMedia[mat][v]) ? mapaMediaMedia[mat][v] : 0;
           });
 
           let totalAlocado = 0;
@@ -1010,28 +1010,21 @@ app.get('/api/metas/volume', async (req, res) => {
           listaVendedores.forEach(v => {
             const pot = (mapaMediaMedia[mat] && mapaMediaMedia[mat][v]) ? mapaMediaMedia[mat][v] : 0;
 
-            if (somaPotencialProduto > 0) {
-              metasVendedores[v] = Math.round(umbArredondado * (pot / somaPotencialProduto));
+            if (somaPotencialMesa > 0) {
+              metasVendedores[v] = Math.floor(metaAlvo * (pot / somaPotencialMesa));
             } else {
-              metasVendedores[v] = Math.floor(umbArredondado / (listaVendedores.length || 1));
+              metasVendedores[v] = Math.floor(metaAlvo / (listaVendedores.length || 1));
             }
             totalAlocado += metasVendedores[v];
           });
 
-          let diferenca = umbArredondado - totalAlocado;
+          let diferenca = metaAlvo - totalAlocado;
           let idx = 0;
 
-          while (diferenca !== 0 && rankingVendedores.length > 0) {
+          while (diferenca > 0 && rankingVendedores.length > 0) {
             const vendAtual = rankingVendedores[idx % rankingVendedores.length];
-
-            if (diferenca > 0) {
-              metasVendedores[vendAtual] += 1;
-              diferenca--;
-            } else if (diferenca < 0 && metasVendedores[vendAtual] > 0) {
-              metasVendedores[vendAtual] -= 1;
-              diferenca++;
-            }
-
+            metasVendedores[vendAtual] += 1;
+            diferenca--;
             idx++;
           }
         }
@@ -1098,15 +1091,20 @@ app.post('/api/metas/volume/salvar', async (req, res) => {
 });
 
 // ==========================================
-// 8. EXPORTAÇÃO: Gerar Dados no formato METAS OUT.csv (Ordenado por VENDEDOR, sem Meta CIA = 0)
+// 8. EXPORTAÇÃO: Gerar Dados no formato METAS OUT.csv (Ano/Mês Vigentes Dinâmicos + Nome Customizado)
 // ==========================================
 app.get('/api/metas/volume/exportar', async (req, res) => {
   let client;
   try {
     client = await pool.connect();
 
-    const ano = req.query.ano || '2026';
-    const mes = req.query.mes || '10';
+    // Obtém Mês e Ano vigentes automaticamente
+    const dataAtual = new Date();
+    const anoVigente = String(dataAtual.getFullYear());
+    const mesVigente = String(dataAtual.getMonth() + 1).padStart(2, '0');
+
+    const ano = req.query.ano || anoVigente;
+    const mes = req.query.mes ? String(req.query.mes).padStart(2, '0') : mesVigente;
 
     const todasRevendas = ['10', '20', '30', '40', '50', '60'];
     let todosVendedores = [];
@@ -1116,10 +1114,8 @@ app.get('/api/metas/volume/exportar', async (req, res) => {
       }
     });
 
-    // Ordena os vendedores em ordem numérica crescente (101, 102, 103...)
     todosVendedores.sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
 
-    // Busca apenas produtos com Meta CIA estritamente maior que zero (> 0)
     const queryProdutos = await client.query(`
       SELECT 
         TRIM(m."Material") AS "Material",
@@ -1146,7 +1142,6 @@ app.get('/api/metas/volume/exportar', async (req, res) => {
     const exportRows = [];
     const layoutHeader = '9999;99;XXX;999999;999999999;99;99999;9999999;";"';
 
-    // LAÇOS ORDENADOS POR VENDEDOR PRIMEIRO
     todosVendedores.forEach(vend => {
       const vendClean = String(vend).trim();
       const vendPadrao = vendClean.padStart(3, '0');
@@ -1177,9 +1172,13 @@ app.get('/api/metas/volume/exportar', async (req, res) => {
     });
 
     const csvContent = [layoutHeader, ...exportRows.map(r => r.linhaFormatada)].join('\n');
+    const nomeArquivo = `Meta_Vol_${ano}_${mes}.csv`;
 
     return res.json({
       success: true,
+      ano,
+      mes,
+      nomeArquivo,
       totalRegistros: exportRows.length,
       dados: exportRows,
       csvText: csvContent
