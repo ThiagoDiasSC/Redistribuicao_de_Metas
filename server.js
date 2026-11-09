@@ -11,10 +11,10 @@ const nodemailer = require('nodemailer');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// String de conexão direta com a base de dados do Supabase (Nuvem)
-const SUPABASE_CONNECTION_STRING = 'postgresql://postgres.awnklqofukqdlczmqlsl:Mega230499%40Sc@aws-0-us-east-1.pooler.supabase.com:6543/postgres';
+// String de conexão direta usando a porta 5432 (Session Mode/Direct Pooler) para evitar limites de transação (6543)
+const SUPABASE_CONNECTION_STRING = 'postgresql://postgres.awnklqofukqdlczmqlsl:Mega230499%40Sc@aws-0-us-east-1.pooler.supabase.com:5432/postgres';
 
-// Configuração de conexão do PostgreSQL (Prioriza a variável do Render ou usa a conexão Supabase)
+// Configuração de conexão do PostgreSQL (Prioriza a variável do Render ou usa a conexão Supabase na porta 5432)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || SUPABASE_CONNECTION_STRING,
   ssl: {
@@ -1176,6 +1176,16 @@ app.get('/api/metas/volume', async (req, res) => {
       mapaMediaMedia[mat][vend] = soma;
     });
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public."MG_Meta_Vol_Distribuida" (
+        "Revenda" TEXT,
+        "Material" TEXT,
+        "Vendedor" TEXT,
+        "Volume" NUMERIC(15, 4),
+        PRIMARY KEY ("Revenda", "Material", "Vendedor")
+      );
+    `);
+
     const querySalvas = await client.query(`
       SELECT "Material", "Vendedor", "Volume"
       FROM public."MG_Meta_Vol_Distribuida"
@@ -1262,7 +1272,7 @@ app.get('/api/metas/volume', async (req, res) => {
 
   } catch (error) {
     console.error('Erro ao buscar metas:', error);
-    return res.status(500).json({ success: false, message: 'Erro ao carregar dados: ' + error.message });
+    return res.status(500).json({ success: false, message: error.message });
   } finally {
     if (client) client.release();
   }
