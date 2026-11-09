@@ -11,22 +11,22 @@ const nodemailer = require('nodemailer');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// String de conexão direta usando a porta 5432 (Session Mode/Direct Pooler) para evitar limites de transação (6543)
+// String de conexão direta na porta 5432 (Session Mode/Direct Pooler) para evitar limites do pooler de transação (6543)
 const SUPABASE_CONNECTION_STRING = 'postgresql://postgres.awnklqofukqdlczmqlsl:Mega230499%40Sc@aws-0-us-east-1.pooler.supabase.com:5432/postgres';
 
-// Configuração de conexão do PostgreSQL (Prioriza a variável do Render ou usa a conexão Supabase na porta 5432)
+// Configuração de conexão do PostgreSQL (Prioriza a variável do Render ou usa o Supabase)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || SUPABASE_CONNECTION_STRING,
   ssl: {
-    rejectUnauthorized: false // Obrigatório para conexões SSL na nuvem do Supabase
+    rejectUnauthorized: false
   }
 });
 
 const upload = multer({ dest: 'uploads/' });
 
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Servir arquivos estáticos do frontend
 app.use(express.static(path.join(__dirname)));
@@ -417,7 +417,7 @@ app.patch('/api/usuarios/:id/status', async (req, res) => {
 });
 
 // ==========================================
-// 1. IMPORTAÇÃO: Base de Clientes (UPSERT)
+// 1. IMPORTAÇÃO: Base de Clientes (Processamento leve em Lotes para não estourar RAM no Render)
 // ==========================================
 app.post('/api/import/clientes', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'Nenhum arquivo enviado.' });
@@ -428,14 +428,44 @@ app.post('/api/import/clientes', upload.single('file'), async (req, res) => {
 
   try {
     client = await pool.connect();
-    let registros = [];
+    
+    await client.query('BEGIN');
+    await client.query('ALTER TABLE public."MG_Base_Cli" ADD COLUMN IF NOT EXISTS "Cod_Completo" TEXT;');
+    await client.query('CREATE TEMP TABLE temp_clientes (LIKE public."MG_Base_Cli" INCLUDING DEFAULTS) ON COMMIT DROP;');
+
+    let totalLidos = 0;
+    let chunk = [];
+    const BATCH_SIZE = 500; // Grava em blocos de 500 registos mantendo uso de RAM baixo
+
+    async function processarChunk(registros) {
+      if (registros.length === 0) return;
+      const colunas = Object.keys(registros[0]);
+      
+      for (const col of colunas) {
+        await client.query(`ALTER TABLE public."MG_Base_Cli" ADD COLUMN IF NOT EXISTS "${col}" TEXT;`);
+        await client.query(`ALTER TABLE temp_clientes ADD COLUMN IF NOT EXISTS "${col}" TEXT;`);
+      }
+
+      const colunasFormatadas = colunas.map(c => `"${c}"`).join(', ');
+      const valuesPlaceholders = [];
+      const flatParams = [];
+      let paramIdx = 1;
+
+      for (const reg of registros) {
+        const rowParams = colunas.map(c => reg[c] !== undefined ? reg[c] : null);
+        valuesPlaceholders.push(`(${rowParams.map(() => `$${paramIdx++}`).join(', ')})`);
+        flatParams.push(...rowParams);
+      }
+
+      await client.query(`INSERT INTO temp_clientes (${colunasFormatadas}) VALUES ${valuesPlaceholders.join(', ')}`, flatParams);
+    }
 
     if (originalName.endsWith('.xlsx') || originalName.endsWith('.xls') || originalName.endsWith('.xlsm')) {
       const workbook = xlsx.readFile(filePath);
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rawRows = xlsx.utils.sheet_to_json(sheet, { defval: null });
 
-      registros = rawRows.map(row => {
+      for (const row of rawRows) {
         const obj = {};
         Object.keys(row).forEach(k => {
           const keyClean = k.trim();
@@ -445,15 +475,22 @@ app.post('/api/import/clientes', upload.single('file'), async (req, res) => {
         });
         if (obj['Regiao'] && obj['Numero']) {
           obj['Cod_Completo'] = gerarCodCompleto(obj['Regiao'], obj['Numero']);
+          chunk.push(obj);
+          totalLidos++;
         }
-        return obj;
-      }).filter(r => r['Regiao'] && r['Numero']);
+
+        if (chunk.length >= BATCH_SIZE) {
+          await processarChunk(chunk);
+          chunk = [];
+        }
+      }
+      if (chunk.length > 0) await processarChunk(chunk);
 
     } else {
       await new Promise((resolve, reject) => {
         fs.createReadStream(filePath, { encoding: 'latin1' })
           .pipe(csv({ separator: ';' }))
-          .on('data', (row) => {
+          .on('data', async (row) => {
             const rowLimpa = {};
             Object.keys(row).forEach(k => {
               const keyTrimmed = k.trim();
@@ -464,63 +501,40 @@ app.post('/api/import/clientes', upload.single('file'), async (req, res) => {
 
             if (rowLimpa['Regiao'] && rowLimpa['Numero']) {
               rowLimpa['Cod_Completo'] = gerarCodCompleto(rowLimpa['Regiao'], rowLimpa['Numero']);
-              registros.push(rowLimpa);
+              chunk.push(rowLimpa);
+              totalLidos++;
+            }
+
+            if (chunk.length >= BATCH_SIZE) {
+              const toProcess = [...chunk];
+              chunk = [];
+              await processarChunk(toProcess);
             }
           })
-          .on('end', resolve)
+          .on('end', async () => {
+            if (chunk.length > 0) await processarChunk(chunk);
+            resolve();
+          })
           .on('error', reject);
       });
     }
 
-    if (registros.length === 0) {
+    if (totalLidos === 0) {
+      await client.query('ROLLBACK');
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       return res.status(400).json({ success: false, message: 'Nenhum cliente válido encontrado.' });
     }
 
-    await client.query('BEGIN');
-    await client.query('ALTER TABLE public."MG_Base_Cli" ADD COLUMN IF NOT EXISTS "Cod_Completo" TEXT;');
-    await client.query('CREATE TEMP TABLE temp_clientes (LIKE public."MG_Base_Cli" INCLUDING DEFAULTS) ON COMMIT DROP;');
-
-    const colunas = Object.keys(registros[0]);
-    for (const col of colunas) {
-      await client.query(`ALTER TABLE public."MG_Base_Cli" ADD COLUMN IF NOT EXISTS "${col}" TEXT;`);
-      await client.query(`ALTER TABLE temp_clientes ADD COLUMN IF NOT EXISTS "${col}" TEXT;`);
-    }
-
-    const colunasFormatadas = colunas.map(c => `"${c}"`).join(', ');
-    const batchSize = Math.max(1, Math.floor(30000 / colunas.length));
-
-    for (let i = 0; i < registros.length; i += batchSize) {
-      const chunk = registros.slice(i, i + batchSize);
-      const valuesPlaceholders = [];
-      const flatParams = [];
-      let paramIdx = 1;
-
-      for (const reg of chunk) {
-        const rowParams = colunas.map(c => reg[c] !== undefined ? reg[c] : null);
-        valuesPlaceholders.push(`(${rowParams.map(() => `$${paramIdx++}`).join(', ')})`);
-        flatParams.push(...rowParams);
-      }
-
-      await client.query(`INSERT INTO temp_clientes (${colunasFormatadas}) VALUES ${valuesPlaceholders.join(', ')}`, flatParams);
-    }
-
-    const setColumns = colunas
-      .filter(c => c !== 'Regiao' && c !== 'Numero' && c !== 'Cod_Completo')
-      .map(c => `"${c}" = t."${c}"`)
-      .join(', ');
-
     const resUpdate = await client.query(`
       UPDATE public."MG_Base_Cli" c 
-      SET ${setColumns} 
+      SET "Vend(1)" = t."Vend(1)", "Nome_Cli" = t."Nome_Cli"
       FROM temp_clientes t 
       WHERE TRIM(c."Cod_Completo") = TRIM(t."Cod_Completo");
     `);
 
     const resInsert = await client.query(`
-      INSERT INTO public."MG_Base_Cli" (${colunasFormatadas}) 
-      SELECT ${colunasFormatadas} 
-      FROM temp_clientes t 
+      INSERT INTO public."MG_Base_Cli" 
+      SELECT * FROM temp_clientes t 
       WHERE NOT EXISTS (
         SELECT 1 FROM public."MG_Base_Cli" c 
         WHERE TRIM(c."Cod_Completo") = TRIM(t."Cod_Completo")
@@ -543,7 +557,7 @@ app.post('/api/import/clientes', upload.single('file'), async (req, res) => {
     return res.json({
       success: true,
       message: 'Base de Clientes sincronizada com sucesso!',
-      totalLidos: registros.length,
+      totalLidos: totalLidos,
       atualizados: resUpdate.rowCount,
       novos: resInsert.rowCount,
       inseridos: resInsert.rowCount
@@ -552,6 +566,7 @@ app.post('/api/import/clientes', upload.single('file'), async (req, res) => {
   } catch (error) {
     if (client) await client.query('ROLLBACK');
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    console.error('Erro ao importar clientes:', error);
     return res.status(500).json({ success: false, message: 'Erro ao processar clientes: ' + error.message });
   } finally {
     if (client) client.release();
