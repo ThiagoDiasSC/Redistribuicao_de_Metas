@@ -274,14 +274,38 @@
     let usuariosLista = [];
 
     async function carregarLayout() {
-      try {
-        const resHeader = await fetch('Layout/Cabecalho/header.html');
-        if (resHeader.ok) document.getElementById('header-container').innerHTML = await resHeader.text();
-        const resFooter = await fetch('Layout/Rodape/footer.html');
-        if (resFooter.ok) document.getElementById('footer-container').innerHTML = await resFooter.text();
-      } catch (err) {
-        console.error('Erro ao carregar layout:', err);
+    try {
+      const resHeader = await fetch('Layout/Cabecalho/header.html');
+      if (resHeader.ok) {
+        document.getElementById('header-container').innerHTML = await resHeader.text();
+        
+        // --- INSERE O PRIMEIRO NOME ASSIM QUE O HEADER É CARREGADO ---
+        const usuarioData = localStorage.getItem('usuarioLogado');
+        if (usuarioData) {
+          try {
+            const parsed = JSON.parse(usuarioData);
+            const nomeCompleto = parsed.usuario?.nome || parsed.nome || '';
+            if (nomeCompleto) {
+              const primeiroNome = nomeCompleto.trim().split(' ')[0];
+              const span = document.getElementById('headerFirstName');
+              if (span) span.innerText = primeiroNome;
+            }
+          } catch (e) {
+            console.error('Erro ao ler usuário:', e);
+          }
+        }
       }
+
+      const resFooter = await fetch('Layout/Rodape/footer.html');
+      if (resFooter.ok) document.getElementById('footer-container').innerHTML = await resFooter.text();
+    } catch (err) {
+      console.error('Erro ao carregar layout:', err);
+    }
+  }
+
+    function handleLogout() {
+      localStorage.removeItem('usuarioLogado');
+      window.location.href = 'index.html';
     }
 
     function trocarAbaCadastro(aba, btn) {
