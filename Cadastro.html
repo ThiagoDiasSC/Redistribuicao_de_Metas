@@ -43,15 +43,18 @@
       padding-bottom: 8px;
     }
 
+    /* Grid com 3 colunas por linha */
     .form-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(3, 1fr);
       gap: 20px;
       margin-bottom: 20px;
     }
+    @media (max-width: 900px) {
+      .form-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    }
 
     .form-group { display: flex; flex-direction: column; gap: 6px; position: relative; }
-    .form-group.full-width { grid-column: 1 / -1; }
     .form-group label { font-size: 12px; font-weight: bold; color: #555; }
     .form-group input, .form-group select {
       padding: 9px 12px;
@@ -62,7 +65,7 @@
     }
     .form-group input:focus, .form-group select:focus { border-color: #006633; outline: none; }
 
-    /* Estilo do Dropdown Customizado de Revendas */
+    /* Dropdown customizado de Revendas */
     .dropdown-select-box {
       position: relative;
       width: 100%;
@@ -166,6 +169,7 @@
         <input type="hidden" id="userId">
 
         <div class="form-grid">
+          <!-- Linha 1 -->
           <div class="form-group">
             <label for="userNome">Nome Completo *</label>
             <input type="text" id="userNome" required placeholder="Ex: Thiago Dias Oliveira">
@@ -181,6 +185,7 @@
             <input type="password" id="userSenha" placeholder="Digite a senha">
           </div>
 
+          <!-- Linha 2 -->
           <div class="form-group">
             <label for="userFuncao">Função *</label>
             <select id="userFuncao" required onchange="aoMudarFuncao()">
@@ -192,8 +197,7 @@
             </select>
           </div>
 
-          <!-- MESA / REVENDA (LISTA SUSPENSA COM MÚLTIPLA SELEÇÃO) -->
-          <div class="form-group full-width">
+          <div class="form-group">
             <label>Mesa / Revenda *</label>
             <div class="dropdown-select-box" id="dropdownRevendaBox">
               <div class="dropdown-select-header" onclick="toggleDropdownRevenda()">
@@ -212,18 +216,18 @@
             </div>
           </div>
 
-          <!-- CÓDIGO VENDEDOR -->
-          <div class="form-group" id="grpCodVendedor" style="display: none;">
-            <label for="userCodVendedor">Código Vendedor (Master Cross) *</label>
-            <input type="text" id="userCodVendedor" placeholder="Ex: 101, 251">
-          </div>
-
           <div class="form-group">
             <label for="userAtivo">Status</label>
             <select id="userAtivo">
               <option value="true">Ativo</option>
               <option value="false">Inativo</option>
             </select>
+          </div>
+
+          <!-- Linha 3 (Aparece apenas para Vendedor) -->
+          <div class="form-group" id="grpCodVendedor" style="display: none;">
+            <label for="userCodVendedor">Código Vendedor (Master Cross) *</label>
+            <input type="text" id="userCodVendedor" placeholder="Ex: 101, 251">
           </div>
         </div>
 
@@ -288,13 +292,11 @@
       if (aba === 'outros') document.getElementById('abaOutros').style.display = 'block';
     }
 
-    // Abrir/Fechar a lista suspensa customizada
     function toggleDropdownRevenda() {
       const list = document.getElementById('dropdownOptionsList');
       list.classList.toggle('show');
     }
 
-    // Fecha o dropdown se clicar fora dele
     window.addEventListener('click', function(e) {
       const box = document.getElementById('dropdownRevendaBox');
       if (box && !box.contains(e.target)) {
@@ -307,9 +309,7 @@
       const textSpan = document.getElementById('dropdownSelectedText');
       const func = document.getElementById('userFuncao').value;
 
-      // Se for supervisor, garante seleção única ao marcar uma nova opção
       if (func === 'Supervisor' && checkboxes.length > 1) {
-        // Desmarca todas as outras exceto a última clicada
         const ultimoClicado = event.target;
         checkboxes.forEach(cb => {
           if (cb !== ultimoClicado) cb.checked = false;
@@ -327,38 +327,31 @@
       }
     }
 
-    // Regras de comportamento por Função
     function aoMudarFuncao() {
       const func = document.getElementById('userFuncao').value;
       const checkboxes = document.querySelectorAll('input[name="revenda"]');
       const grpCod = document.getElementById('grpCodVendedor');
       const inputCod = document.getElementById('userCodVendedor');
 
-      // Limpa seleções ao trocar de função
       checkboxes.forEach(cb => {
         cb.checked = false;
         cb.disabled = false;
       });
       atualizarTextoSelecionado();
 
-      if (func === 'Administrador' || func === 'Gerente') {
-        // Gerente e Admin: múltiplas revendas permitidas livremente
-        grpCod.style.display = 'none';
-        inputCod.required = false;
-        inputCod.value = '';
-      } else if (func === 'Supervisor') {
-        // Supervisor: permite selecionar apenas 1 revenda
+      if (func === 'Administrador' || func === 'Gerente' || func === 'Supervisor') {
         grpCod.style.display = 'none';
         inputCod.required = false;
         inputCod.value = '';
       } else if (func === 'Vendedor') {
-        // Vendedor: campo código vendedor disponível e preenchimento automático da mesa
         grpCod.style.display = 'flex';
         inputCod.required = true;
+      } else {
+        grpCod.style.display = 'none';
+        inputCod.required = false;
       }
     }
 
-    // Atribuição automática da mesa do vendedor com base no código digitado
     document.getElementById('userCodVendedor').addEventListener('input', function() {
       const func = document.getElementById('userFuncao').value;
       if (func === 'Vendedor') {
@@ -375,7 +368,7 @@
 
         checkboxes.forEach(cb => {
           cb.checked = (cb.value === revendaAlvo);
-          cb.disabled = true; // Trava para o vendedor ser automático
+          cb.disabled = true;
         });
         atualizarTextoSelecionado();
       }
