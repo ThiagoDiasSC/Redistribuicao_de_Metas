@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cadastrar Nova Senha - MEGA GIRO</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23006633%22/><text x=%2250%22 y=%2268%22 font-size=%2２50%２ font-weight=%２bold%２ fill=%２%２3ffffff%２ text-anchor=%２middle%２ font-family=%２Arial%２>MG</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23006633%22/><text x=%2250%22 y=%2268%22 font-size=%2250%22 font-weight=%22bold%22 fill=%22%23ffffff%22 text-anchor=%22middle%22 font-family=%22Arial%22>MG</text></svg>">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="../Layout/style.css">
   <style>
@@ -44,7 +44,6 @@
       <h2 class="title">Redefinição de Senha</h2>
       <p class="instructions">Digite e confirme sua nova senha de acesso.</p>
 
-      <!-- Caixa de identificação do usuário em alteração -->
       <div id="userTargetBox" class="user-target-box" style="display: none;">
         <i class="fa-solid fa-user-check"></i>
         <span>Alterando senha da conta: <strong id="userTargetEmail">--</strong></span>
@@ -78,15 +77,24 @@
     </div>
   </main>
 
-  <footer class="footer-text">
-    &copy; 2026 TMY. Todos os direitos reservados.
-  </footer>
+  <!-- Rodapé Unificado Dinâmico -->
+  <div id="footer-container"></div>
 
   <script>
     const API_BASE_URL = window.location.port === '5500' ? 'http://localhost:3000' : '';
     let emailUsuario = '';
 
-    // Captura o e-mail passado no link da URL (?email=usuario@megagiromg.com.br)
+    async function carregarRodapeUnificado() {
+      try {
+        const resFooter = await fetch('../Layout/Rodape/footer.html');
+        if (resFooter.ok) {
+          document.getElementById('footer-container').innerHTML = await resFooter.text();
+        }
+      } catch (err) {
+        console.error('Erro ao carregar o rodapé unificado:', err);
+      }
+    }
+
     function capturarParametrosURL() {
       const urlParams = new URLSearchParams(window.location.search);
       emailUsuario = urlParams.get('email') || '';
@@ -152,7 +160,10 @@
       }
     }
 
-    window.onload = capturarParametrosURL;
+    window.onload = () => {
+      carregarRodapeUnificado();
+      capturarParametrosURL();
+    };
   </script>
 </body>
 </html>

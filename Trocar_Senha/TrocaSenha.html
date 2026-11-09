@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Recuperar Senha - MEGA GIRO</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23006633%22/><text x=%2250%22 y=%2268%22 font-size=%2２50%２ font-weight=%２bold%２ fill=%２%２3ffffff%２ text-anchor=%２middle%２ font-family=%２Arial%２>MG</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23006633%22/><text x=%2250%22 y=%2268%22 font-size=%2250%22 font-weight=%22bold%22 fill=%22%23ffffff%22 text-anchor=%22middle%22 font-family=%22Arial%22>MG</text></svg>">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="../Layout/style.css">
 </head>
@@ -46,12 +46,22 @@
     </div>
   </main>
 
-  <footer class="footer-text">
-    &copy; 2026 TMY. Todos os direitos reservados.
-  </footer>
+  <!-- Rodapé Unificado Dinâmico -->
+  <div id="footer-container"></div>
 
   <script>
     const API_BASE_URL = window.location.port === '5500' ? 'http://localhost:3000' : '';
+
+    async function carregarRodapeUnificado() {
+      try {
+        const resFooter = await fetch('../Layout/Rodape/footer.html');
+        if (resFooter.ok) {
+          document.getElementById('footer-container').innerHTML = await resFooter.text();
+        }
+      } catch (err) {
+        console.error('Erro ao carregar o rodapé unificado:', err);
+      }
+    }
 
     async function handleRecovery(event) {
       event.preventDefault();
@@ -95,6 +105,8 @@
         btnEnviar.innerHTML = 'Enviar';
       }
     }
+
+    window.onload = carregarRodapeUnificado;
   </script>
 </body>
 </html>
