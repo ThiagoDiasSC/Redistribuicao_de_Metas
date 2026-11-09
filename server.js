@@ -321,7 +321,7 @@ app.patch('/api/usuarios/:id/status', async (req, res) => {
 });
 
 // ==========================================
-// 1. IMPORTAÇÃO: Base de Clientes (Sem estourar Heap / RAM < 20MB)
+// 1. IMPORTAÇÃO: Base de Clientes (Corrigida e Dinâmica)
 // ==========================================
 app.post('/api/import/clientes', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'Nenhum arquivo enviado.' });
@@ -339,11 +339,13 @@ app.post('/api/import/clientes', upload.single('file'), async (req, res) => {
 
     let totalLidos = 0;
     let batch = [];
-    const BATCH_SIZE = 150; // Inserções em lotes minúsculos para não estourar RAM do Render
+    let colunasCapturadas = new Set();
+    const BATCH_SIZE = 150;
 
     const salvarLote = async (itens) => {
       if (itens.length === 0) return;
       const colunas = Object.keys(itens[0]);
+      colunas.forEach(c => colunasCapturadas.add(c));
 
       for (const col of colunas) {
         await client.query(`ALTER TABLE public."MG_Base_Cli" ADD COLUMN IF NOT EXISTS "${col}" TEXT;`);
@@ -394,7 +396,6 @@ app.post('/api/import/clientes', upload.single('file'), async (req, res) => {
       }
 
     } else {
-      // Pipe direto com pausa controlada de memória no Stream do CSV
       const stream = fs.createReadStream(filePath, { encoding: 'latin1' }).pipe(csv({ separator: ';' }));
 
       for await (const row of stream) {
@@ -432,16 +433,21 @@ app.post('/api/import/clientes', upload.single('file'), async (req, res) => {
       return res.status(400).json({ success: false, message: 'Nenhum cliente válido encontrado.' });
     }
 
+    // Montagem dinâmica das colunas de UPDATE
+    const arrayColunas = Array.from(colunasCapturadas).filter(c => c !== 'Cod_Completo');
+    const setClause = arrayColunas.map(c => `"${c}" = t."${c}"`).join(', ');
+    const allColsFormatted = Array.from(colunasCapturadas).map(c => `"${c}"`).join(', ');
+
     const resUpdate = await client.query(`
       UPDATE public."MG_Base_Cli" c 
-      SET "Vend(1)" = t."Vend(1)", "Nome_Cli" = t."Nome_Cli"
+      SET ${setClause}
       FROM temp_clientes t 
       WHERE TRIM(c."Cod_Completo") = TRIM(t."Cod_Completo");
     `);
 
     const resInsert = await client.query(`
-      INSERT INTO public."MG_Base_Cli" 
-      SELECT * FROM temp_clientes t 
+      INSERT INTO public."MG_Base_Cli" (${allColsFormatted})
+      SELECT ${allColsFormatted} FROM temp_clientes t 
       WHERE NOT EXISTS (
         SELECT 1 FROM public."MG_Base_Cli" c 
         WHERE TRIM(c."Cod_Completo") = TRIM(t."Cod_Completo")
