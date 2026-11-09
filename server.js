@@ -11,10 +11,9 @@ const nodemailer = require('nodemailer');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// String de conexão direta na porta 5432 (Session Mode/Direct Pooler) para evitar limites do pooler de transação (6543)
+// String de conexão direta na porta 5432 (Session Mode/Direct Pooler)
 const SUPABASE_CONNECTION_STRING = 'postgresql://postgres.awnklqofukqdlczmqlsl:Mega230499%40Sc@aws-0-us-east-1.pooler.supabase.com:5432/postgres';
 
-// Configuração de conexão do PostgreSQL (Prioriza a variável do Render ou usa o Supabase)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || SUPABASE_CONNECTION_STRING,
   ssl: {
@@ -31,7 +30,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Servir arquivos estáticos do frontend
 app.use(express.static(path.join(__dirname)));
 
-// Configuração do Transportador SMTP (E-mail corporativo de envio de senha)
+// Configuração do Transportador SMTP
 const transporter = nodemailer.createTransport({
   host: 'megagiromg.com.br',
   port: 465,
@@ -45,7 +44,6 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// Mapeamento das Mesas/Gerentes para Cliente CIA
 const MAPA_REVENDA_CLIENTECIA = {
   '10': '208490',
   '20': '224208',
@@ -55,7 +53,6 @@ const MAPA_REVENDA_CLIENTECIA = {
   '60': '224209'
 };
 
-// Mapeamento das Mesas/Gerentes para Lista de Vendedores (Todas as Revendas)
 const MAPA_REVENDA_VENDEDORES = {
   '10': ['101', '102', '103', '104', '105', '106', '107', '201', '202', '203'],
   '20': ['251', '252', '253', '254', '255', '256'],
@@ -86,7 +83,6 @@ async function registrarUltimaImportacao(client, tipoImportacao) {
   `, [tipoImportacao]);
 }
 
-// Inicializar a estrutura da tabela MG_Usuarios caso não exista no Supabase
 async function inicializarTabelaUsuarios() {
   let client;
   try {
@@ -112,7 +108,7 @@ async function inicializarTabelaUsuarios() {
 }
 inicializarTabelaUsuarios();
 
-// Rotas estáticas de navegação
+// Rotas estáticas
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/home.html', (req, res) => res.sendFile(path.join(__dirname, 'home.html')));
 app.get('/Meta_Vol.html', (req, res) => res.sendFile(path.join(__dirname, 'Meta_Vol.html')));
@@ -122,13 +118,9 @@ app.get('/Cadastro.html', (req, res) => res.sendFile(path.join(__dirname, 'Cadas
 app.get('/Trocar_Senha/TrocaSenha.html', (req, res) => res.sendFile(path.join(__dirname, 'Trocar_Senha', 'TrocaSenha.html')));
 app.get('/Trocar_Senha/TrocaSenha2.html', (req, res) => res.sendFile(path.join(__dirname, 'Trocar_Senha', 'TrocaSenha2.html')));
 
-// API: Solicitação e Envio de E-mail de Recuperação de Senha
 app.post('/api/recover-password', async (req, res) => {
   const { email } = req.body;
-
-  if (!email) {
-    return res.status(400).json({ success: false, message: 'Informe o e-mail cadastrado.' });
-  }
+  if (!email) return res.status(400).json({ success: false, message: 'Informe o e-mail cadastrado.' });
 
   const protocol = req.protocol;
   const host = req.get('host');
@@ -165,26 +157,15 @@ app.post('/api/recover-password', async (req, res) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    return res.json({
-      success: true,
-      message: 'Instruções de redefinição enviadas para o seu e-mail!'
-    });
+    return res.json({ success: true, message: 'Instruções de redefinição enviadas para o seu e-mail!' });
   } catch (error) {
-    console.error('Erro ao enviar e-mail de recuperação:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Falha ao enviar e-mail. Verifique se o endereço foi digitado corretamente ou contate o administrador.'
-    });
+    return res.status(500).json({ success: false, message: 'Falha ao enviar e-mail: ' + error.message });
   }
 });
 
-// API: Redefinição Efetiva de Senha
 app.post('/api/reset-password', async (req, res) => {
   const { email, newPassword } = req.body;
-
-  if (!email || !newPassword) {
-    return res.status(400).json({ success: false, message: 'Usuário ou nova senha ausentes.' });
-  }
+  if (!email || !newPassword) return res.status(400).json({ success: false, message: 'Usuário ou nova senha ausentes.' });
 
   let client;
   try {
@@ -194,23 +175,16 @@ app.post('/api/reset-password', async (req, res) => {
       [newPassword, email]
     );
 
-    if (result.rowCount === 0) {
-      return res.status(404).json({ success: false, message: 'Usuário não encontrado na base.' });
-    }
+    if (result.rowCount === 0) return res.status(404).json({ success: false, message: 'Usuário não encontrado na base.' });
 
-    return res.json({
-      success: true,
-      message: `Senha da conta ${email} alterada com sucesso!`
-    });
+    return res.json({ success: true, message: `Senha da conta ${email} alterada com sucesso!` });
   } catch (error) {
-    console.error('Erro ao redefinir senha:', error);
-    return res.status(500).json({ success: false, message: 'Erro ao atualizar a senha no banco de dados.' });
+    return res.status(500).json({ success: false, message: 'Erro ao atualizar a senha: ' + error.message });
   } finally {
     if (client) client.release();
   }
 });
 
-// API: Retornar datas das últimas importações
 app.get('/api/import/ultimas-datas', async (req, res) => {
   let client;
   try {
@@ -223,30 +197,19 @@ app.get('/api/import/ultimas-datas', async (req, res) => {
     `);
 
     const result = await client.query('SELECT "tipo", "data_importacao" FROM public."MG_Log_Importacoes";');
-    
     const datas = {};
-    result.rows.forEach(r => {
-      datas[r.tipo] = r.data_importacao;
-    });
-
+    result.rows.forEach(r => { datas[r.tipo] = r.data_importacao; });
     return res.json({ success: true, datas });
   } catch (error) {
-    console.error('Erro ao buscar datas de importação:', error);
     return res.status(500).json({ success: false, message: error.message });
   } finally {
     if (client) client.release();
   }
 });
 
-// ==========================================
-// API: AUTENTICAÇÃO DE LOGIN (100% via Supabase / PostgreSQL MG_Usuarios)
-// ==========================================
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
-
-  if (!username || !password) {
-    return res.status(400).json({ success: false, message: 'E-mail e senha são obrigatórios.' });
-  }
+  if (!username || !password) return res.status(400).json({ success: false, message: 'E-mail e senha são obrigatórios.' });
 
   let client;
   try {
@@ -256,19 +219,11 @@ app.post('/api/login', async (req, res) => {
       [username.trim()]
     );
 
-    if (result.rowCount === 0) {
-      return res.status(401).json({ success: false, message: 'E-mail ou senha incorretos.' });
-    }
-
+    if (result.rowCount === 0) return res.status(401).json({ success: false, message: 'E-mail ou senha incorretos.' });
     const usuario = result.rows[0];
 
-    if (!usuario.ativo) {
-      return res.status(403).json({ success: false, message: 'Conta inativa. Entre em contato com o Administrador.' });
-    }
-
-    if (usuario.senha !== password) {
-      return res.status(401).json({ success: false, message: 'E-mail ou senha incorretos.' });
-    }
+    if (!usuario.ativo) return res.status(403).json({ success: false, message: 'Conta inativa.' });
+    if (usuario.senha !== password) return res.status(401).json({ success: false, message: 'E-mail ou senha incorretos.' });
 
     return res.json({
       success: true,
@@ -282,31 +237,21 @@ app.post('/api/login', async (req, res) => {
         cod_vendedor: usuario.cod_vendedor
       }
     });
-
   } catch (error) {
-    console.error('Erro no login:', error);
-    return res.status(500).json({ success: false, message: 'Erro interno ao autenticar usuário.' });
+    return res.status(500).json({ success: false, message: 'Erro interno ao autenticar.' });
   } finally {
     if (client) client.release();
   }
 });
 
-// ==========================================
-// CRUD: GERENCIAMENTO DE USUÁRIOS (MG_Usuarios)
-// ==========================================
 app.get('/api/usuarios', async (req, res) => {
   let client;
   try {
     client = await pool.connect();
-    const result = await client.query(`
-      SELECT "id", "nome", "email", "funcao", "revenda", "cod_vendedor", "ativo", "created_at"
-      FROM public."MG_Usuarios"
-      ORDER BY "id" ASC;
-    `);
+    const result = await client.query('SELECT "id", "nome", "email", "funcao", "revenda", "cod_vendedor", "ativo", "created_at" FROM public."MG_Usuarios" ORDER BY "id" ASC;');
     return res.json({ success: true, usuarios: result.rows });
   } catch (error) {
-    console.error('Erro ao buscar usuários:', error);
-    return res.status(500).json({ success: false, message: 'Erro ao buscar usuários: ' + error.message });
+    return res.status(500).json({ success: false, message: error.message });
   } finally {
     if (client) client.release();
   }
@@ -314,32 +259,23 @@ app.get('/api/usuarios', async (req, res) => {
 
 app.post('/api/usuarios', async (req, res) => {
   const { nome, email, senha, funcao, revenda, cod_vendedor, ativo } = req.body;
-
-  if (!nome || !email || !senha || !funcao) {
-    return res.status(400).json({ success: false, message: 'Campos obrigatórios: Nome, E-mail, Senha e Função.' });
-  }
+  if (!nome || !email || !senha || !funcao) return res.status(400).json({ success: false, message: 'Campos obrigatórios ausentes.' });
 
   let client;
   try {
     client = await pool.connect();
     const checkEmail = await client.query('SELECT "id" FROM public."MG_Usuarios" WHERE TRIM(LOWER("email")) = TRIM(LOWER($1));', [email]);
-    if (checkEmail.rowCount > 0) {
-      return res.status(400).json({ success: false, message: 'O e-mail informado já está cadastrado.' });
-    }
-
-    const isAtivo = ativo !== undefined ? ativo : true;
+    if (checkEmail.rowCount > 0) return res.status(400).json({ success: false, message: 'E-mail já cadastrado.' });
 
     const result = await client.query(`
       INSERT INTO public."MG_Usuarios" ("nome", "email", "senha", "funcao", "revenda", "cod_vendedor", "ativo")
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING "id", "nome", "email", "funcao", "revenda", "cod_vendedor", "ativo";
-    `, [nome.trim(), email.trim().toLowerCase(), senha, funcao, revenda || 'TODAS', cod_vendedor || null, isAtivo]);
+    `, [nome.trim(), email.trim().toLowerCase(), senha, funcao, revenda || 'TODAS', cod_vendedor || null, ativo !== undefined ? ativo : true]);
 
-    return res.json({ success: true, message: 'Usuário cadastrado com sucesso!', usuario: result.rows[0] });
-
+    return res.json({ success: true, message: 'Usuário cadastrado!', usuario: result.rows[0] });
   } catch (error) {
-    console.error('Erro ao cadastrar usuário:', error);
-    return res.status(500).json({ success: false, message: 'Erro ao cadastrar usuário: ' + error.message });
+    return res.status(500).json({ success: false, message: error.message });
   } finally {
     if (client) client.release();
   }
@@ -349,43 +285,21 @@ app.put('/api/usuarios/:id', async (req, res) => {
   const { id } = req.params;
   const { nome, email, senha, funcao, revenda, cod_vendedor, ativo } = req.body;
 
-  if (!nome || !email || !funcao) {
-    return res.status(400).json({ success: false, message: 'Campos obrigatórios: Nome, E-mail e Função.' });
-  }
-
   let client;
   try {
     client = await pool.connect();
-    let queryText = '';
-    let queryParams = [];
+    let queryText = senha && senha.trim() !== ''
+      ? 'UPDATE public."MG_Usuarios" SET "nome"=$1, "email"=$2, "senha"=$3, "funcao"=$4, "revenda"=$5, "cod_vendedor"=$6, "ativo"=$7 WHERE "id"=$8;'
+      : 'UPDATE public."MG_Usuarios" SET "nome"=$1, "email"=$2, "funcao"=$3, "revenda"=$4, "cod_vendedor"=$5, "ativo"=$6 WHERE "id"=$7;';
 
-    if (senha && senha.trim() !== '') {
-      queryText = `
-        UPDATE public."MG_Usuarios"
-        SET "nome" = $1, "email" = $2, "senha" = $3, "funcao" = $4, "revenda" = $5, "cod_vendedor" = $6, "ativo" = $7
-        WHERE "id" = $8;
-      `;
-      queryParams = [nome.trim(), email.trim().toLowerCase(), senha, funcao, revenda || 'TODAS', cod_vendedor || null, ativo, id];
-    } else {
-      queryText = `
-        UPDATE public."MG_Usuarios"
-        SET "nome" = $1, "email" = $2, "funcao" = $3, "revenda" = $4, "cod_vendedor" = $5, "ativo" = $6
-        WHERE "id" = $7;
-      `;
-      queryParams = [nome.trim(), email.trim().toLowerCase(), funcao, revenda || 'TODAS', cod_vendedor || null, ativo, id];
-    }
+    let queryParams = senha && senha.trim() !== ''
+      ? [nome.trim(), email.trim().toLowerCase(), senha, funcao, revenda || 'TODAS', cod_vendedor || null, ativo, id]
+      : [nome.trim(), email.trim().toLowerCase(), funcao, revenda || 'TODAS', cod_vendedor || null, ativo, id];
 
-    const result = await client.query(queryText, queryParams);
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ success: false, message: 'Usuário não encontrado.' });
-    }
-
-    return res.json({ success: true, message: 'Usuário atualizado com sucesso!' });
-
+    await client.query(queryText, queryParams);
+    return res.json({ success: true, message: 'Usuário atualizado!' });
   } catch (error) {
-    console.error('Erro ao atualizar usuário:', error);
-    return res.status(500).json({ success: false, message: 'Erro ao atualizar usuário: ' + error.message });
+    return res.status(500).json({ success: false, message: error.message });
   } finally {
     if (client) client.release();
   }
@@ -394,30 +308,20 @@ app.put('/api/usuarios/:id', async (req, res) => {
 app.patch('/api/usuarios/:id/status', async (req, res) => {
   const { id } = req.params;
   const { ativo } = req.body;
-
   let client;
   try {
     client = await pool.connect();
-    const result = await client.query(
-      'UPDATE public."MG_Usuarios" SET "ativo" = $1 WHERE "id" = $2;',
-      [ativo, id]
-    );
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ success: false, message: 'Usuário não encontrado.' });
-    }
-
-    return res.json({ success: true, message: `Status do usuário alterado para ${ativo ? 'Ativo' : 'Inativo'}.` });
+    await client.query('UPDATE public."MG_Usuarios" SET "ativo" = $1 WHERE "id" = $2;', [ativo, id]);
+    return res.json({ success: true, message: 'Status alterado!' });
   } catch (error) {
-    console.error('Erro ao alterar status:', error);
-    return res.status(500).json({ success: false, message: 'Erro ao alterar status: ' + error.message });
+    return res.status(500).json({ success: false, message: error.message });
   } finally {
     if (client) client.release();
   }
 });
 
 // ==========================================
-// 1. IMPORTAÇÃO: Base de Clientes (Processamento leve em Lotes para não estourar RAM no Render)
+// 1. IMPORTAÇÃO: Base de Clientes (Sem estourar Heap / RAM < 20MB)
 // ==========================================
 app.post('/api/import/clientes', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'Nenhum arquivo enviado.' });
@@ -428,19 +332,19 @@ app.post('/api/import/clientes', upload.single('file'), async (req, res) => {
 
   try {
     client = await pool.connect();
-    
+
     await client.query('BEGIN');
     await client.query('ALTER TABLE public."MG_Base_Cli" ADD COLUMN IF NOT EXISTS "Cod_Completo" TEXT;');
     await client.query('CREATE TEMP TABLE temp_clientes (LIKE public."MG_Base_Cli" INCLUDING DEFAULTS) ON COMMIT DROP;');
 
     let totalLidos = 0;
-    let chunk = [];
-    const BATCH_SIZE = 500; // Grava em blocos de 500 registos mantendo uso de RAM baixo
+    let batch = [];
+    const BATCH_SIZE = 150; // Inserções em lotes minúsculos para não estourar RAM do Render
 
-    async function processarChunk(registros) {
-      if (registros.length === 0) return;
-      const colunas = Object.keys(registros[0]);
-      
+    const salvarLote = async (itens) => {
+      if (itens.length === 0) return;
+      const colunas = Object.keys(itens[0]);
+
       for (const col of colunas) {
         await client.query(`ALTER TABLE public."MG_Base_Cli" ADD COLUMN IF NOT EXISTS "${col}" TEXT;`);
         await client.query(`ALTER TABLE temp_clientes ADD COLUMN IF NOT EXISTS "${col}" TEXT;`);
@@ -451,14 +355,14 @@ app.post('/api/import/clientes', upload.single('file'), async (req, res) => {
       const flatParams = [];
       let paramIdx = 1;
 
-      for (const reg of registros) {
+      for (const reg of itens) {
         const rowParams = colunas.map(c => reg[c] !== undefined ? reg[c] : null);
         valuesPlaceholders.push(`(${rowParams.map(() => `$${paramIdx++}`).join(', ')})`);
         flatParams.push(...rowParams);
       }
 
       await client.query(`INSERT INTO temp_clientes (${colunasFormatadas}) VALUES ${valuesPlaceholders.join(', ')}`, flatParams);
-    }
+    };
 
     if (originalName.endsWith('.xlsx') || originalName.endsWith('.xls') || originalName.endsWith('.xlsm')) {
       const workbook = xlsx.readFile(filePath);
@@ -470,53 +374,56 @@ app.post('/api/import/clientes', upload.single('file'), async (req, res) => {
         Object.keys(row).forEach(k => {
           const keyClean = k.trim();
           if (keyClean && !keyClean.startsWith('Unnamed:')) {
-            obj[keyClean] = row[k] !== undefined ? row[k] : null;
+            obj[keyClean] = row[k] !== undefined && row[k] !== null ? String(row[k]) : null;
           }
         });
         if (obj['Regiao'] && obj['Numero']) {
           obj['Cod_Completo'] = gerarCodCompleto(obj['Regiao'], obj['Numero']);
-          chunk.push(obj);
+          batch.push(obj);
           totalLidos++;
         }
 
-        if (chunk.length >= BATCH_SIZE) {
-          await processarChunk(chunk);
-          chunk = [];
+        if (batch.length >= BATCH_SIZE) {
+          await salvarLote(batch);
+          batch = [];
         }
       }
-      if (chunk.length > 0) await processarChunk(chunk);
+      if (batch.length > 0) {
+        await salvarLote(batch);
+        batch = [];
+      }
 
     } else {
-      await new Promise((resolve, reject) => {
-        fs.createReadStream(filePath, { encoding: 'latin1' })
-          .pipe(csv({ separator: ';' }))
-          .on('data', async (row) => {
-            const rowLimpa = {};
-            Object.keys(row).forEach(k => {
-              const keyTrimmed = k.trim();
-              if (keyTrimmed && !keyTrimmed.startsWith('Unnamed:')) {
-                rowLimpa[keyTrimmed] = row[k] !== undefined ? row[k] : null;
-              }
-            });
+      // Pipe direto com pausa controlada de memória no Stream do CSV
+      const stream = fs.createReadStream(filePath, { encoding: 'latin1' }).pipe(csv({ separator: ';' }));
 
-            if (rowLimpa['Regiao'] && rowLimpa['Numero']) {
-              rowLimpa['Cod_Completo'] = gerarCodCompleto(rowLimpa['Regiao'], rowLimpa['Numero']);
-              chunk.push(rowLimpa);
-              totalLidos++;
-            }
+      for await (const row of stream) {
+        const rowLimpa = {};
+        Object.keys(row).forEach(k => {
+          const keyTrimmed = k.trim();
+          if (keyTrimmed && !keyTrimmed.startsWith('Unnamed:')) {
+            rowLimpa[keyTrimmed] = row[k] !== undefined && row[k] !== null && row[k] !== '' ? String(row[k]).trim() : null;
+          }
+        });
 
-            if (chunk.length >= BATCH_SIZE) {
-              const toProcess = [...chunk];
-              chunk = [];
-              await processarChunk(toProcess);
-            }
-          })
-          .on('end', async () => {
-            if (chunk.length > 0) await processarChunk(chunk);
-            resolve();
-          })
-          .on('error', reject);
-      });
+        if (rowLimpa['Regiao'] && rowLimpa['Numero']) {
+          rowLimpa['Cod_Completo'] = gerarCodCompleto(rowLimpa['Regiao'], rowLimpa['Numero']);
+          batch.push(rowLimpa);
+          totalLidos++;
+        }
+
+        if (batch.length >= BATCH_SIZE) {
+          stream.pause();
+          await salvarLote(batch);
+          batch = [];
+          stream.resume();
+        }
+      }
+
+      if (batch.length > 0) {
+        await salvarLote(batch);
+        batch = [];
+      }
     }
 
     if (totalLidos === 0) {
@@ -573,9 +480,6 @@ app.post('/api/import/clientes', upload.single('file'), async (req, res) => {
   }
 });
 
-// ==========================================
-// API: Sincronizar Clientes Ativos
-// ==========================================
 app.post('/api/import/clientes-ativos', async (req, res) => {
   let client;
   try {
@@ -595,15 +499,13 @@ app.post('/api/import/clientes-ativos', async (req, res) => {
     return res.json({ success: true, message: `Base ativa sincronizada! Total: ${result.rowCount} registros.` });
   } catch (error) {
     if (client) await client.query('ROLLBACK');
-    return res.status(500).json({ success: false, message: 'Erro ao atualizar base ativa: ' + error.message });
+    return res.status(500).json({ success: false, message: error.message });
   } finally {
     if (client) client.release();
   }
 });
 
-// ==========================================
-// 2. IMPORTAÇÃO: Base de Produtos (UPSERT)
-// ==========================================
+// 2. IMPORTAÇÃO: Base de Produtos
 app.post('/api/import/produtos', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'Nenhum arquivo enviado.' });
   const filePath = req.file.path;
@@ -681,26 +583,16 @@ app.post('/api/import/produtos', upload.single('file'), async (req, res) => {
       await client.query(`INSERT INTO temp_produtos (${colunasFormatadas}) VALUES ${valuesPlaceholders.join(', ')}`, flatParams);
     }
 
-    const setColumns = colunas
-      .filter(c => c !== 'Reduzido')
-      .map(c => `"${c}" = t."${c}"`)
-      .join(', ');
+    const setColumns = colunas.filter(c => c !== 'Reduzido').map(c => `"${c}" = t."${c}"`).join(', ');
 
     const resUpdate = await client.query(`
-      UPDATE public."MG_Base_Prod" p 
-      SET ${setColumns} 
-      FROM temp_produtos t 
-      WHERE TRIM(p."Reduzido") = TRIM(t."Reduzido");
+      UPDATE public."MG_Base_Prod" p SET ${setColumns} FROM temp_produtos t WHERE TRIM(p."Reduzido") = TRIM(t."Reduzido");
     `);
 
     const resInsert = await client.query(`
       INSERT INTO public."MG_Base_Prod" (${colunasFormatadas}) 
-      SELECT ${colunasFormatadas} 
-      FROM temp_produtos t 
-      WHERE NOT EXISTS (
-        SELECT 1 FROM public."MG_Base_Prod" p 
-        WHERE TRIM(p."Reduzido") = TRIM(t."Reduzido")
-      );
+      SELECT ${colunasFormatadas} FROM temp_produtos t 
+      WHERE NOT EXISTS (SELECT 1 FROM public."MG_Base_Prod" p WHERE TRIM(p."Reduzido") = TRIM(t."Reduzido"));
     `);
 
     await registrarUltimaImportacao(client, 'produtos');
@@ -709,25 +601,22 @@ app.post('/api/import/produtos', upload.single('file'), async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'Base de Produtos sincronizada com sucesso!',
+      message: 'Base de Produtos sincronizada!',
       totalLidos: registros.length,
       atualizados: resUpdate.rowCount,
       novos: resInsert.rowCount,
       inseridos: resInsert.rowCount
     });
-
   } catch (error) {
     if (client) await client.query('ROLLBACK');
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    return res.status(500).json({ success: false, message: 'Erro ao processar produtos: ' + error.message });
+    return res.status(500).json({ success: false, message: error.message });
   } finally {
     if (client) client.release();
   }
 });
 
-// ==========================================
-// 3. IMPORTAÇÃO: Base Histórica (TRUNCATE + Cálculos)
-// ==========================================
+// 3. IMPORTAÇÃO: Base Histórica
 app.post('/api/import/historico-mastercross', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'Nenhum arquivo enviado.' });
 
@@ -786,9 +675,8 @@ app.post('/api/import/historico-mastercross', upload.single('file'), async (req,
         const rawVal = row[i];
         let val = 0;
         if (rawVal !== undefined && rawVal !== null && rawVal !== '') {
-          if (typeof rawVal === 'number') {
-            val = rawVal;
-          } else {
+          if (typeof rawVal === 'number') val = rawVal;
+          else {
             const parsed = parseFloat(String(rawVal).replace(',', '.'));
             val = isNaN(parsed) ? 0 : parsed;
           }
@@ -802,18 +690,9 @@ app.post('/api/import/historico-mastercross', upload.single('file'), async (req,
       const mediaMedia = (media + maximo) / 2.0;
 
       registrosParaInserir.push([
-        codClientePadrao,
-        codProduto,
-        descProduto,
-        mesesVal[0],
-        mesesVal[1],
-        mesesVal[2],
-        mesesVal[3],
-        mesesVal[4],
-        mesesVal[5],
-        media,
-        maximo,
-        mediaMedia
+        codClientePadrao, codProduto, descProduto,
+        mesesVal[0], mesesVal[1], mesesVal[2], mesesVal[3], mesesVal[4], mesesVal[5],
+        media, maximo, mediaMedia
       ]);
     }
 
@@ -874,15 +753,13 @@ app.post('/api/import/historico-mastercross', upload.single('file'), async (req,
   } catch (error) {
     if (client) await client.query('ROLLBACK');
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    return res.status(500).json({ success: false, message: 'Erro ao processar base histórica: ' + error.message });
+    return res.status(500).json({ success: false, message: error.message });
   } finally {
     if (client) client.release();
   }
 });
 
-// ==========================================
-// 4. IMPORTAÇÃO: Metas da CIA Volume (TRUNCATE + RESET DA TABELA DISTRIBUÍDA)
-// ==========================================
+// 4. IMPORTAÇÃO: Metas da CIA Volume
 app.post('/api/import/metas-cia-volume', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'Nenhum arquivo enviado.' });
   const filePath = req.file.path;
@@ -906,11 +783,6 @@ app.post('/api/import/metas-cia-volume', upload.single('file'), async (req, res)
           .on('end', resolve)
           .on('error', reject);
       });
-    }
-
-    if (rawRows.length === 0) {
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      return res.status(400).json({ success: false, message: 'Arquivo vazio.' });
     }
 
     const registrosLimpos = rawRows.map(row => {
@@ -987,7 +859,7 @@ app.post('/api/import/metas-cia-volume', upload.single('file'), async (req, res)
 
     return res.json({
       success: true,
-      message: 'Meta de Volume da CIA importada com sucesso! As metas distribuídas foram resetadas para recálculo.',
+      message: 'Meta de Volume importada com sucesso!',
       totalLidos: registrosParaInserir.length,
       atualizados: 0,
       novos: registrosParaInserir.length,
@@ -997,20 +869,15 @@ app.post('/api/import/metas-cia-volume', upload.single('file'), async (req, res)
   } catch (error) {
     if (client) await client.query('ROLLBACK');
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    return res.status(500).json({ success: false, message: 'Erro ao processar: ' + error.message });
+    return res.status(500).json({ success: false, message: error.message });
   } finally {
     if (client) client.release();
   }
 });
 
-// ==========================================
-// 5. IMPORTAÇÃO: Metas de Cobertura CIA (Consolidação de Múltiplas Abas)
-// ==========================================
+// 5. IMPORTAÇÃO: Metas de Cobertura CIA
 app.post('/api/import/metas-cia-cobertura', upload.single('file'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ success: false, message: 'Nenhum arquivo enviado.' });
-  }
-
+  if (!req.file) return res.status(400).json({ success: false, message: 'Nenhum arquivo enviado.' });
   const filePath = req.file.path;
   let client;
 
@@ -1026,9 +893,7 @@ app.post('/api/import/metas-cia-cobertura', upload.single('file'), async (req, r
 
       rawRows.forEach(r => {
         const obj = {};
-        Object.keys(r).forEach(k => {
-          obj[k.trim().toUpperCase()] = r[k];
-        });
+        Object.keys(r).forEach(k => obj[k.trim().toUpperCase()] = r[k]);
 
         const cliente = obj['CLIENTE'] !== undefined ? String(obj['CLIENTE']).trim() : '';
         const material = obj['MATERIAL'] !== undefined ? String(obj['MATERIAL']).trim() : '';
@@ -1041,9 +906,8 @@ app.post('/api/import/metas-cia-cobertura', upload.single('file'), async (req, r
         let metaVal = 0;
         const rawMeta = obj['META'];
         if (rawMeta !== undefined && rawMeta !== null && rawMeta !== '') {
-          if (typeof rawMeta === 'number') {
-            metaVal = rawMeta;
-          } else {
+          if (typeof rawMeta === 'number') metaVal = rawMeta;
+          else {
             const parsed = parseFloat(String(rawMeta).replace(',', '.'));
             metaVal = isNaN(parsed) ? 0 : parsed;
           }
@@ -1051,36 +915,17 @@ app.post('/api/import/metas-cia-cobertura', upload.single('file'), async (req, r
 
         if (cliente || material) {
           registrosConsolidados.push([
-            cliente,
-            material,
-            familia,
-            embalagem,
-            packtype,
-            marca,
-            sabor,
-            metaVal
+            cliente, material, familia, embalagem, packtype, marca, sabor, metaVal
           ]);
         }
       });
     });
 
-    if (registrosConsolidados.length === 0) {
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      return res.status(400).json({ success: false, message: 'Nenhum dado válido encontrado nas abas da planilha.' });
-    }
-
     await client.query('BEGIN');
-
     await client.query(`
       CREATE TABLE IF NOT EXISTS public."MG_Meta_Cob_Cia" (
-        "Cliente" TEXT,
-        "Material" TEXT,
-        "Familia" TEXT,
-        "Embalagem" TEXT,
-        "Packtype" TEXT,
-        "Marca" TEXT,
-        "Sabor" TEXT,
-        "Meta" NUMERIC(15, 4),
+        "Cliente" TEXT, "Material" TEXT, "Familia" TEXT, "Embalagem" TEXT,
+        "Packtype" TEXT, "Marca" TEXT, "Sabor" TEXT, "Meta" NUMERIC(15, 4),
         "Data_Importacao" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -1107,13 +952,12 @@ app.post('/api/import/metas-cia-cobertura', upload.single('file'), async (req, r
     }
 
     await registrarUltimaImportacao(client, 'metas_cia_cobertura');
-
     await client.query('COMMIT');
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
     return res.json({
       success: true,
-      message: `Meta de Cobertura da CIA importada com sucesso! ${registrosConsolidados.length} registros inseridos das ${workbook.SheetNames.length} abas.`,
+      message: `Meta de Cobertura importada! Total: ${registrosConsolidados.length} registros.`,
       totalLidos: registrosConsolidados.length,
       atualizados: 0,
       novos: registrosConsolidados.length,
@@ -1123,16 +967,13 @@ app.post('/api/import/metas-cia-cobertura', upload.single('file'), async (req, r
   } catch (error) {
     if (client) await client.query('ROLLBACK');
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    console.error('Erro na importação de cobertura:', error);
-    return res.status(500).json({ success: false, message: 'Erro ao processar arquivo: ' + error.message });
+    return res.status(500).json({ success: false, message: error.message });
   } finally {
     if (client) client.release();
   }
 });
 
-// ==========================================
-// 6. CONSULTA DE METAS: Distribuição Proporcional (Alocação Exata de 100%)
-// ==========================================
+// 6. CONSULTA DE METAS: Distribuição Proporcional
 app.get('/api/metas/volume', async (req, res) => {
   const codRevenda = req.query.revenda || '10';
   const clienteCia = MAPA_REVENDA_CLIENTECIA[codRevenda] || '208490';
@@ -1286,16 +1127,13 @@ app.get('/api/metas/volume', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Erro ao buscar metas:', error);
     return res.status(500).json({ success: false, message: error.message });
   } finally {
     if (client) client.release();
   }
 });
 
-// ==========================================
 // 7. SALVAR DISTRIBUIÇÃO DE METAS
-// ==========================================
 app.post('/api/metas/volume/salvar', async (req, res) => {
   const { revenda, distribuicao } = req.body; 
   let client;
@@ -1324,15 +1162,13 @@ app.post('/api/metas/volume/salvar', async (req, res) => {
     return res.json({ success: true, message: 'Metas salvas com sucesso!' });
   } catch (error) {
     if (client) await client.query('ROLLBACK');
-    return res.status(500).json({ success: false, message: 'Erro ao salvar metas: ' + error.message });
+    return res.status(500).json({ success: false, message: error.message });
   } finally {
     if (client) client.release();
   }
 });
 
-// ==========================================
 // 8. EXPORTAÇÃO: Gerar Dados no formato METAS OUT.csv
-// ==========================================
 app.get('/api/metas/volume/exportar', async (req, res) => {
   let client;
   try {
@@ -1396,14 +1232,8 @@ app.get('/api/metas/volume/exportar', async (req, res) => {
             : 0;
 
           exportRows.push({
-            ano,
-            mes,
-            vendedor: vendPadrao,
-            material: materialPadrao,
-            metaVendedor: metaVend,
-            campo5: 0,
-            campo6: 0,
-            metaCia: metaCia,
+            ano, mes, vendedor: vendPadrao, material: materialPadrao,
+            metaVendedor: metaVend, campo5: 0, campo6: 0, metaCia: metaCia,
             linhaFormatada: `${ano};${mes};${vendPadrao};${materialPadrao};${metaVend};0;0;${metaCia};";"`
           });
         }
@@ -1414,23 +1244,17 @@ app.get('/api/metas/volume/exportar', async (req, res) => {
     const nomeArquivo = `Meta_Vol_${ano}_${mes}.csv`;
 
     return res.json({
-      success: true,
-      ano,
-      mes,
-      nomeArquivo,
-      totalRegistros: exportRows.length,
-      dados: exportRows,
-      csvText: csvContent
+      success: true, ano, mes, nomeArquivo,
+      totalRegistros: exportRows.length, dados: exportRows, csvText: csvContent
     });
 
   } catch (error) {
-    console.error('Erro ao gerar exportação:', error);
-    return res.status(500).json({ success: false, message: 'Erro ao gerar dados de exportação: ' + error.message });
+    return res.status(500).json({ success: false, message: error.message });
   } finally {
     if (client) client.release();
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`\n🚀 Servidor MEGA GIRO rodando em: http://localhost:${PORT}\n`);
+  console.log(`\n🚀 Servidor MEGA GIRO rodando na porta: ${PORT}\n`);
 });
