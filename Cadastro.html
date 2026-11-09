@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MEGA GIRO - Cadastro Geral</title>
+  <title>MEGA GIRO - Gestão de Cadastros</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="Layout/style.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background-color: #f4f6f9; color: #333; padding: 0 0 20px 0; }
+    body { background-color: #f4f6f9; color: #333; padding-bottom: 30px; }
+
     .dashboard-container { padding: 0 20px 20px 20px; max-width: 1400px; margin: 0 auto; }
 
     .subtitle-card {
@@ -21,35 +22,199 @@
     .subtitle-card h1 { font-size: 22px; font-weight: 600; }
     .subtitle { font-size: 13px; color: #d1e7dd; margin-top: 4px; }
 
-    .card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-    .empty-state { text-align: center; padding: 40px 20px; color: #666; }
-    .empty-state i { font-size: 48px; color: #006633; margin-bottom: 12px; }
+    .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab-btn { background: #e9ecef; border: 1px solid #ced4da; padding: 10px 18px; border-radius: 20px; font-size: 14px; font-weight: 600; color: #495057; cursor: pointer; transition: all 0.2s; }
+    .tab-btn:hover { background: #dee2e6; }
+    .tab-btn.active { background: #006633; color: white; border-color: #006633; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+
+    .card { background: white; border-radius: 8px; padding: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #006633;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 2px solid #e8f5e9;
+      padding-bottom: 8px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 12px; font-weight: bold; color: #555; }
+    .form-group input, .form-group select {
+      padding: 9px 12px;
+      font-size: 13px;
+      border: 1px solid #ced4da;
+      border-radius: 6px;
+      background: white;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: #006633; outline: none; }
+
+    .form-actions { display: flex; gap: 10px; margin-top: 10px; }
+    .btn-save { background: #006633; color: white; border: none; padding: 10px 20px; font-size: 13px; font-weight: bold; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+    .btn-save:hover { background: #004d26; }
+    .btn-cancel { background: #6c757d; color: white; border: none; padding: 10px 20px; font-size: 13px; font-weight: bold; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+    .btn-cancel:hover { background: #5a6268; }
+
+    .table-container { overflow-x: auto; border: 1px solid #e0e0e0; border-radius: 6px; margin-top: 20px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+    th, td { padding: 10px 14px; border-bottom: 1px solid #eee; white-space: nowrap; }
+    thead th { background: #006633; color: white; font-weight: 600; }
+    tbody tr:hover { background-color: #f8f9fa; }
+
+    .badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; text-align: center; display: inline-block; }
+    .badge-admin { background: #e8f5e9; color: #2e7d32; }
+    .badge-gerente { background: #e3f2fd; color: #1565c0; }
+    .badge-supervisor { background: #fff3cd; color: #856404; }
+    .badge-vendedor { background: #f3e5f5; color: #6a1b9a; }
+    
+    .badge-ativo { background: #d4edda; color: #155724; }
+    .badge-inativo { background: #f8d7da; color: #721c24; }
+
+    .btn-icon { background: none; border: none; cursor: pointer; font-size: 15px; margin: 0 4px; color: #555; }
+    .btn-icon:hover { color: #006633; }
+    .btn-icon-danger:hover { color: #d9534f; }
   </style>
 </head>
 <body>
 
-  <!-- Cabeçalho -->
+  <!-- Cabeçalho Dinâmico -->
   <div id="header-container"></div>
 
   <div class="dashboard-container">
     <div class="subtitle-card">
-      <h1>MEGA GIRO - Cadastro Geral do Sistema</h1>
-      <div class="subtitle">Gestão de parâmetros, usuários, revendas e tabelas de apoio.</div>
+      <h1>MEGA GIRO - Módulo de Cadastros</h1>
+      <div class="subtitle">Gerenciamento de acessos de usuários, perfis e tabelas auxiliares.</div>
     </div>
 
-    <div class="card">
-      <div class="empty-state">
-        <i class="fa-solid fa-pen-to-square"></i>
-        <h3>Módulo de Cadastro</h3>
-        <p>A estrutura deste módulo está pronta. Em breve os formulários de manutenção estarão disponíveis.</p>
+    <!-- Navegação de Abas -->
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="trocarAbaCadastro('usuarios', this)"><i class="fa-solid fa-user-shield"></i> Submenu Usuários</button>
+      <button class="tab-btn" onclick="trocarAbaCadastro('outros', this)"><i class="fa-solid fa-list-check"></i> Outros Cadastros</button>
+    </div>
+
+    <!-- SUBMENU: USUÁRIOS -->
+    <div id="abaUsuarios" class="card tab-content">
+      <div class="section-title">
+        <i class="fa-solid fa-user-gear"></i> <span id="formTitle">Cadastro e Edição de Usuário</span>
+      </div>
+
+      <form id="formUsuario" onsubmit="salvarUsuario(event)">
+        <input type="hidden" id="userId">
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="userNome">Nome Completo *</label>
+            <input type="text" id="userNome" required placeholder="Ex: Thiago Dias Oliveira">
+          </div>
+
+          <div class="form-group">
+            <label for="userEmail">E-mail (Usuário) *</label>
+            <input type="email" id="userEmail" required placeholder="exemplo@megagiromg.com.br">
+          </div>
+
+          <div class="form-group">
+            <label for="userSenha">Senha * <small id="senhaHelp" style="color: #777; font-weight: normal;"></small></label>
+            <input type="password" id="userSenha" placeholder="Digite a senha">
+          </div>
+
+          <div class="form-group">
+            <label for="userFuncao">Função *</label>
+            <select id="userFuncao" required onchange="aoMudarFuncao()">
+              <option value="">Selecione...</option>
+              <option value="Administrador">Administrador</option>
+              <option value="Gerente">Gerente</option>
+              <option value="Supervisor">Supervisor</option>
+              <option value="Vendedor">Vendedor</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="userRevenda">Mesa / Revenda *</label>
+            <select id="userRevenda" required>
+              <option value="TODAS">TODAS (Acesso Geral)</option>
+              <option value="10">10 - Volume CF</option>
+              <option value="20">20 - Volume GV</option>
+              <option value="30">30 - Volume IT</option>
+              <option value="40">40 - Volume TO</option>
+              <option value="50">50 - Volume MA</option>
+              <option value="60">60 - Volume MO</option>
+            </select>
+          </div>
+
+          <!-- CAMPO VENDEDOR OCULTO POR PADRÃO -->
+          <div class="form-group" id="grpCodVendedor" style="display: none;">
+            <label for="userCodVendedor">Código Vendedor (Master Cross) *</label>
+            <input type="text" id="userCodVendedor" placeholder="Ex: 101, 251">
+          </div>
+
+          <div class="form-group">
+            <label for="userAtivo">Status</label>
+            <select id="userAtivo">
+              <option value="true">Ativo</option>
+              <option value="false">Inativo</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-save"><i class="fa-solid fa-floppy-disk"></i> Salvar Usuário</button>
+          <button type="button" class="btn-cancel" onclick="limparFormulario()"><i class="fa-solid fa-xmark"></i> Cancelar</button>
+        </div>
+      </form>
+
+      <div class="section-title" style="margin-top: 30px;">
+        <i class="fa-solid fa-users-viewfinder"></i> Usuários Cadastrados
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>NOME</th>
+              <th>E-MAIL</th>
+              <th>FUNÇÃO</th>
+              <th>REVENDA</th>
+              <th>CÓD. VENDEDOR</th>
+              <th>STATUS</th>
+              <th style="text-align: center;">AÇÕES</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyUsuarios">
+            <tr>
+              <td colspan="8" style="text-align: center; padding: 20px;">Carregando usuários...</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
+
+    <!-- ABA SECUNDÁRIA -->
+    <div id="abaOutros" class="card tab-content" style="display: none;">
+      <div class="section-title">
+        <i class="fa-solid fa-folder-tree"></i> Tabelas Auxiliares de Cadastro
+      </div>
+      <p style="font-size: 13px; color: #666;">Espaço reservado para inclusão e gestão de parâmetros operacionais do sistema.</p>
+    </div>
+
   </div>
 
-  <!-- Rodapé -->
+  <!-- Rodapé Dinâmico -->
   <div id="footer-container"></div>
 
   <script>
+    let usuariosLista = [];
+
     async function carregarLayout() {
       try {
         const resHeader = await fetch('Layout/Cabecalho/header.html');
@@ -62,12 +227,181 @@
       }
     }
 
-    function handleLogout() {
-      localStorage.removeItem('usuarioLogado');
-      window.location.href = 'index.html';
+    function trocarAbaCadastro(aba, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+
+      btn.classList.add('active');
+
+      if (aba === 'usuarios') document.getElementById('abaUsuarios').style.display = 'block';
+      if (aba === 'outros') document.getElementById('abaOutros').style.display = 'block';
     }
 
-    window.onload = carregarLayout;
+    // EXIBE O CAMPO DE CÓDIGO VENDEDOR APENAS SE A FUNÇÃO FOR "Vendedor"
+    function aoMudarFuncao() {
+      const func = document.getElementById('userFuncao').value;
+      const grpCod = document.getElementById('grpCodVendedor');
+      const inputCod = document.getElementById('userCodVendedor');
+
+      if (func === 'Vendedor') {
+        grpCod.style.display = 'flex';
+        inputCod.required = true;
+      } else {
+        grpCod.style.display = 'none';
+        inputCod.required = false;
+        inputCod.value = '';
+      }
+    }
+
+    async function carregarUsuarios() {
+      const tbody = document.getElementById('tbodyUsuarios');
+      try {
+        const res = await fetch('/api/usuarios');
+        const data = await res.json();
+
+        if (data.success) {
+          usuariosLista = data.usuarios;
+          renderizarTabelaUsuarios(usuariosLista);
+        } else {
+          tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: red;">${data.message}</td></tr>`;
+        }
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: red;">Erro de conexão ao carregar usuários.</td></tr>';
+      }
+    }
+
+    function renderizarTabelaUsuarios(lista) {
+      const tbody = document.getElementById('tbodyUsuarios');
+      if (!lista || lista.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">Nenhum usuário cadastrado.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = lista.map(u => {
+        let badgeFuncao = 'badge-vendedor';
+        if (u.funcao === 'Administrador') badgeFuncao = 'badge-admin';
+        if (u.funcao === 'Gerente') badgeFuncao = 'badge-gerente';
+        if (u.funcao === 'Supervisor') badgeFuncao = 'badge-supervisor';
+
+        const badgeStatus = u.ativo ? 'badge-ativo' : 'badge-inativo';
+
+        return `
+          <tr>
+            <td>#${u.id}</td>
+            <td><strong>${u.nome}</strong></td>
+            <td>${u.email}</td>
+            <td><span class="badge ${badgeFuncao}">${u.funcao}</span></td>
+            <td>${u.revenda || 'TODAS'}</td>
+            <td>${u.cod_vendedor || '-'}</td>
+            <td><span class="badge ${badgeStatus}">${u.ativo ? 'Ativo' : 'Inativo'}</span></td>
+            <td style="text-align: center;">
+              <button class="btn-icon" title="Editar Usuário" onclick="editarUsuario(${u.id})"><i class="fa-solid fa-pen-to-square"></i></button>
+              <button class="btn-icon ${u.ativo ? 'btn-icon-danger' : ''}" title="${u.ativo ? 'Inativar' : 'Ativar'}" onclick="alternarStatusUsuario(${u.id}, ${!u.ativo})">
+                <i class="fa-solid ${u.ativo ? 'fa-user-xmark' : 'fa-user-check'}"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function salvarUsuario(e) {
+      e.preventDefault();
+
+      const id = document.getElementById('userId').value;
+      const nome = document.getElementById('userNome').value;
+      const email = document.getElementById('userEmail').value;
+      const senha = document.getElementById('userSenha').value;
+      const funcao = document.getElementById('userFuncao').value;
+      const revenda = document.getElementById('userRevenda').value;
+      const cod_vendedor = document.getElementById('userCodVendedor').value;
+      const ativo = document.getElementById('userAtivo').value === 'true';
+
+      if (!id && !senha) {
+        return alert('Informe a senha para o novo usuário.');
+      }
+
+      const payload = { nome, email, senha, funcao, revenda, cod_vendedor, ativo };
+
+      try {
+        const url = id ? `/api/usuarios/${id}` : '/api/usuarios';
+        const method = id ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          alert(data.message);
+          limparFormulario();
+          carregarUsuarios();
+        } else {
+          alert('Erro ao salvar usuário: ' + data.message);
+        }
+      } catch (err) {
+        alert('Erro de conexão ao salvar usuário.');
+      }
+    }
+
+    function editarUsuario(id) {
+      const u = usuariosLista.find(item => item.id === id);
+      if (!u) return;
+
+      document.getElementById('userId').value = u.id;
+      document.getElementById('userNome').value = u.nome;
+      document.getElementById('userEmail').value = u.email;
+      document.getElementById('userSenha').value = '';
+      document.getElementById('senhaHelp').innerText = '(Deixe em branco para manter a senha atual)';
+      document.getElementById('userFuncao').value = u.funcao;
+      document.getElementById('userRevenda').value = u.revenda || 'TODAS';
+      document.getElementById('userCodVendedor').value = u.cod_vendedor || '';
+      document.getElementById('userAtivo').value = String(u.ativo);
+
+      document.getElementById('formTitle').innerText = `Editar Usuário #${u.id} - ${u.nome}`;
+      aoMudarFuncao();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function alternarStatusUsuario(id, novoStatus) {
+      const acao = novoStatus ? 'ativar' : 'inativar';
+      if (!confirm(`Deseja realmente ${acao} este usuário?`)) return;
+
+      try {
+        const res = await fetch(`/api/usuarios/${id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ativo: novoStatus })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          alert(data.message);
+          carregarUsuarios();
+        } else {
+          alert('Erro: ' + data.message);
+        }
+      } catch (err) {
+        alert('Erro de conexão ao alterar status do usuário.');
+      }
+    }
+
+    function limparFormulario() {
+      document.getElementById('userId').value = '';
+      document.getElementById('formUsuario').reset();
+      document.getElementById('senhaHelp').innerText = '';
+      document.getElementById('formTitle').innerText = 'Cadastro e Edição de Usuário';
+      aoMudarFuncao();
+    }
+
+    window.onload = () => {
+      carregarLayout();
+      carregarUsuarios();
+      aoMudarFuncao();
+    };
   </script>
 </body>
 </html>

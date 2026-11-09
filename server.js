@@ -33,7 +33,7 @@ app.use(express.static(path.join(__dirname)));
 const transporter = nodemailer.createTransport({
   host: 'megagiromg.com.br',
   port: 465,
-  secure: true, // Porta 465 utiliza conexão SSL/TLS segura
+  secure: true,
   auth: {
     user: 'reset_senha@megagiromg.com.br',
     pass: '230499@Sc'
@@ -63,14 +63,12 @@ const MAPA_REVENDA_VENDEDORES = {
   '60': ['601', '602', '603', '604', '641', '642', '643']
 };
 
-// Auxiliar para padronizar o código do cliente (ex: "0001-0008")
 function gerarCodCompleto(regiao, numero) {
   const regClean = String(regiao || '').replace(/\D/g, '').padStart(4, '0');
   const numClean = String(numero || '').replace(/\D/g, '').padStart(4, '0');
   return `${regClean}-${numClean}`;
 }
 
-// Auxiliar para registrar a data da última importação
 async function registrarUltimaImportacao(client, tipoImportacao) {
   await client.query(`
     CREATE TABLE IF NOT EXISTS public."MG_Log_Importacoes" (
@@ -86,6 +84,32 @@ async function registrarUltimaImportacao(client, tipoImportacao) {
   `, [tipoImportacao]);
 }
 
+// Inicializar a estrutura da tabela MG_Usuarios caso não exista (sem dados fixos)
+async function inicializarTabelaUsuarios() {
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public."MG_Usuarios" (
+        "id" SERIAL PRIMARY KEY,
+        "nome" VARCHAR(150) NOT NULL,
+        "email" VARCHAR(150) UNIQUE NOT NULL,
+        "senha" VARCHAR(255) NOT NULL,
+        "funcao" VARCHAR(50) NOT NULL,
+        "revenda" VARCHAR(20),
+        "cod_vendedor" VARCHAR(20),
+        "ativo" BOOLEAN DEFAULT TRUE,
+        "created_at" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+  } catch (err) {
+    console.error('Erro ao inicializar tabela MG_Usuarios:', err);
+  } finally {
+    if (client) client.release();
+  }
+}
+inicializarTabelaUsuarios();
+
 // Rotas estáticas de navegação
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/home.html', (req, res) => res.sendFile(path.join(__dirname, 'home.html')));
@@ -96,7 +120,7 @@ app.get('/Cadastro.html', (req, res) => res.sendFile(path.join(__dirname, 'Cadas
 app.get('/Trocar_Senha/TrocaSenha.html', (req, res) => res.sendFile(path.join(__dirname, 'Trocar_Senha', 'TrocaSenha.html')));
 app.get('/Trocar_Senha/TrocaSenha2.html', (req, res) => res.sendFile(path.join(__dirname, 'Trocar_Senha', 'TrocaSenha2.html')));
 
-// API: Solicitação e Envio do E-mail de Recuperação de Senha
+// API: Solicitação e Envio de E-mail de Recuperação de Senha
 app.post('/api/recover-password', async (req, res) => {
   const { email } = req.body;
 
@@ -152,7 +176,7 @@ app.post('/api/recover-password', async (req, res) => {
   }
 });
 
-// API: Redefinição Efetiva de Senha identificada por e-mail/usuário
+// API: Redefinição Efetiva de Senha
 app.post('/api/reset-password', async (req, res) => {
   const { email, newPassword } = req.body;
 
@@ -160,7 +184,18 @@ app.post('/api/reset-password', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Usuário ou nova senha ausentes.' });
   }
 
+  let client;
   try {
+    client = await pool.connect();
+    const result = await client.query(
+      'UPDATE public."MG_Usuarios" SET "senha" = $1 WHERE TRIM(LOWER("email")) = TRIM(LOWER($2));',
+      [newPassword, email]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, message: 'Usuário não encontrado na base.' });
+    }
+
     return res.json({
       success: true,
       message: `Senha da conta ${email} alterada com sucesso!`
@@ -168,6 +203,8 @@ app.post('/api/reset-password', async (req, res) => {
   } catch (error) {
     console.error('Erro ao redefinir senha:', error);
     return res.status(500).json({ success: false, message: 'Erro ao atualizar a senha no banco de dados.' });
+  } finally {
+    if (client) client.release();
   }
 });
 
@@ -194,6 +231,184 @@ app.get('/api/import/ultimas-datas', async (req, res) => {
   } catch (error) {
     console.error('Erro ao buscar datas de importação:', error);
     return res.status(500).json({ success: false, message: error.message });
+  } finally {
+    if (client) client.release();
+  }
+});
+
+// ==========================================
+// API: AUTENTICAÇÃO DE LOGIN (100% via PostgreSQL MG_Usuarios)
+// ==========================================
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ success: false, message: 'E-mail e senha são obrigatórios.' });
+  }
+
+  let client;
+  try {
+    client = await pool.connect();
+    const result = await client.query(
+      'SELECT "id", "nome", "email", "senha", "funcao", "revenda", "cod_vendedor", "ativo" FROM public."MG_Usuarios" WHERE TRIM(LOWER("email")) = TRIM(LOWER($1));',
+      [username.trim()]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(401).json({ success: false, message: 'E-mail ou senha incorretos.' });
+    }
+
+    const usuario = result.rows[0];
+
+    if (!usuario.ativo) {
+      return res.status(403).json({ success: false, message: 'Conta inativa. Entre em contato com o Administrador.' });
+    }
+
+    if (usuario.senha !== password) {
+      return res.status(401).json({ success: false, message: 'E-mail ou senha incorretos.' });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Bem-vindo ao sistema!',
+      usuario: {
+        id: usuario.id,
+        nome: usuario.nome,
+        email: usuario.email,
+        funcao: usuario.funcao,
+        revenda: usuario.revenda,
+        cod_vendedor: usuario.cod_vendedor
+      }
+    });
+
+  } catch (error) {
+    console.error('Erro no login:', error);
+    return res.status(500).json({ success: false, message: 'Erro interno ao autenticar usuário.' });
+  } finally {
+    if (client) client.release();
+  }
+});
+
+// ==========================================
+// CRUD: GERENCIAMENTO DE USUÁRIOS (MG_Usuarios)
+// ==========================================
+app.get('/api/usuarios', async (req, res) => {
+  let client;
+  try {
+    client = await pool.connect();
+    const result = await client.query(`
+      SELECT "id", "nome", "email", "funcao", "revenda", "cod_vendedor", "ativo", "created_at"
+      FROM public."MG_Usuarios"
+      ORDER BY "id" ASC;
+    `);
+    return res.json({ success: true, usuarios: result.rows });
+  } catch (error) {
+    console.error('Erro ao buscar usuários:', error);
+    return res.status(500).json({ success: false, message: 'Erro ao buscar usuários: ' + error.message });
+  } finally {
+    if (client) client.release();
+  }
+});
+
+app.post('/api/usuarios', async (req, res) => {
+  const { nome, email, senha, funcao, revenda, cod_vendedor, ativo } = req.body;
+
+  if (!nome || !email || !senha || !funcao) {
+    return res.status(400).json({ success: false, message: 'Campos obrigatórios: Nome, E-mail, Senha e Função.' });
+  }
+
+  let client;
+  try {
+    client = await pool.connect();
+    const checkEmail = await client.query('SELECT "id" FROM public."MG_Usuarios" WHERE TRIM(LOWER("email")) = TRIM(LOWER($1));', [email]);
+    if (checkEmail.rowCount > 0) {
+      return res.status(400).json({ success: false, message: 'O e-mail informado já está cadastrado.' });
+    }
+
+    const isAtivo = ativo !== undefined ? ativo : true;
+
+    const result = await client.query(`
+      INSERT INTO public."MG_Usuarios" ("nome", "email", "senha", "funcao", "revenda", "cod_vendedor", "ativo")
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING "id", "nome", "email", "funcao", "revenda", "cod_vendedor", "ativo";
+    `, [nome.trim(), email.trim().toLowerCase(), senha, funcao, revenda || 'TODAS', cod_vendedor || null, isAtivo]);
+
+    return res.json({ success: true, message: 'Usuário cadastrado com sucesso!', usuario: result.rows[0] });
+
+  } catch (error) {
+    console.error('Erro ao cadastrar usuário:', error);
+    return res.status(500).json({ success: false, message: 'Erro ao cadastrar usuário: ' + error.message });
+  } finally {
+    if (client) client.release();
+  }
+});
+
+app.put('/api/usuarios/:id', async (req, res) => {
+  const { id } = req.params;
+  const { nome, email, senha, funcao, revenda, cod_vendedor, ativo } = req.body;
+
+  if (!nome || !email || !funcao) {
+    return res.status(400).json({ success: false, message: 'Campos obrigatórios: Nome, E-mail e Função.' });
+  }
+
+  let client;
+  try {
+    client = await pool.connect();
+    let queryText = '';
+    let queryParams = [];
+
+    if (senha && senha.trim() !== '') {
+      queryText = `
+        UPDATE public."MG_Usuarios"
+        SET "nome" = $1, "email" = $2, "senha" = $3, "funcao" = $4, "revenda" = $5, "cod_vendedor" = $6, "ativo" = $7
+        WHERE "id" = $8;
+      `;
+      queryParams = [nome.trim(), email.trim().toLowerCase(), senha, funcao, revenda || 'TODAS', cod_vendedor || null, ativo, id];
+    } else {
+      queryText = `
+        UPDATE public."MG_Usuarios"
+        SET "nome" = $1, "email" = $2, "funcao" = $3, "revenda" = $4, "cod_vendedor" = $5, "ativo" = $6
+        WHERE "id" = $7;
+      `;
+      queryParams = [nome.trim(), email.trim().toLowerCase(), funcao, revenda || 'TODAS', cod_vendedor || null, ativo, id];
+    }
+
+    const result = await client.query(queryText, queryParams);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, message: 'Usuário não encontrado.' });
+    }
+
+    return res.json({ success: true, message: 'Usuário atualizado com sucesso!' });
+
+  } catch (error) {
+    console.error('Erro ao atualizar usuário:', error);
+    return res.status(500).json({ success: false, message: 'Erro ao atualizar usuário: ' + error.message });
+  } finally {
+    if (client) client.release();
+  }
+});
+
+app.patch('/api/usuarios/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { ativo } = req.body;
+
+  let client;
+  try {
+    client = await pool.connect();
+    const result = await client.query(
+      'UPDATE public."MG_Usuarios" SET "ativo" = $1 WHERE "id" = $2;',
+      [ativo, id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, message: 'Usuário não encontrado.' });
+    }
+
+    return res.json({ success: true, message: `Status do usuário alterado para ${ativo ? 'Ativo' : 'Inativo'}.` });
+  } catch (error) {
+    console.error('Erro ao alterar status:', error);
+    return res.status(500).json({ success: false, message: 'Erro ao alterar status: ' + error.message });
   } finally {
     if (client) client.release();
   }
@@ -725,8 +940,6 @@ app.post('/api/import/metas-cia-volume', upload.single('file'), async (req, res)
 
     await client.query('BEGIN');
     await client.query('TRUNCATE TABLE public."MG_Meta_Vol_Cia";');
-
-    // EXCLUI TODAS AS DISTRIBUIÇÕES SALVAS ANTERIORMENTE PARA FORÇAR REDISTRIBUIÇÃO DO NOVO ARQUIVO DA CIA
     await client.query('CREATE TABLE IF NOT EXISTS public."MG_Meta_Vol_Distribuida" ("Revenda" TEXT, "Material" TEXT, "Vendedor" TEXT, "Volume" NUMERIC(15, 4), PRIMARY KEY ("Revenda", "Material", "Vendedor"));');
     await client.query('TRUNCATE TABLE public."MG_Meta_Vol_Distribuida";');
 
@@ -757,7 +970,7 @@ app.post('/api/import/metas-cia-volume', upload.single('file'), async (req, res)
 
     return res.json({
       success: true,
-      message: 'Meta de Volume da CIA importada com sucesso! As metas distribuídas anteriores foram resetadas para recálculo automático.',
+      message: 'Meta de Volume da CIA importada com sucesso! As metas distribuídas foram resetadas para recálculo.',
       totalLidos: registrosParaInserir.length,
       atualizados: 0,
       novos: registrosParaInserir.length,
@@ -1091,14 +1304,13 @@ app.post('/api/metas/volume/salvar', async (req, res) => {
 });
 
 // ==========================================
-// 8. EXPORTAÇÃO: Gerar Dados no formato METAS OUT.csv (Ano/Mês Vigentes Dinâmicos + Nome Customizado)
+// 8. EXPORTAÇÃO: Gerar Dados no formato METAS OUT.csv
 // ==========================================
 app.get('/api/metas/volume/exportar', async (req, res) => {
   let client;
   try {
     client = await pool.connect();
 
-    // Obtém Mês e Ano vigentes automaticamente
     const dataAtual = new Date();
     const anoVigente = String(dataAtual.getFullYear());
     const mesVigente = String(dataAtual.getMonth() + 1).padStart(2, '0');
@@ -1190,15 +1402,6 @@ app.get('/api/metas/volume/exportar', async (req, res) => {
   } finally {
     if (client) client.release();
   }
-});
-
-// Autenticação de Login
-app.post('/api/login', (req, res) => {
-  const { username, password } = req.body;
-  if (username === 'thiago@megagiromg.com.br' && password === '230499@Sc') {
-    return res.json({ success: true, message: 'Bem-vindo ao sistema!' });
-  }
-  return res.status(401).json({ success: false, message: 'E-mail ou senha incorretos.' });
 });
 
 app.listen(PORT, () => {
