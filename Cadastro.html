@@ -50,7 +50,7 @@
       margin-bottom: 20px;
     }
 
-    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; position: relative; }
     .form-group.full-width { grid-column: 1 / -1; }
     .form-group label { font-size: 12px; font-weight: bold; color: #555; }
     .form-group input, .form-group select {
@@ -62,26 +62,54 @@
     }
     .form-group input:focus, .form-group select:focus { border-color: #006633; outline: none; }
 
-    /* Caixa de Revendas Dinâmica (Checkboxes) */
-    .revendas-box {
+    /* Estilo do Dropdown Customizado de Revendas */
+    .dropdown-select-box {
+      position: relative;
+      width: 100%;
+    }
+    .dropdown-select-header {
+      padding: 9px 12px;
+      font-size: 13px;
       border: 1px solid #ced4da;
       border-radius: 6px;
-      padding: 12px;
-      background: #fafafa;
-      max-height: 160px;
-      overflow-y: auto;
+      background: white;
+      cursor: pointer;
       display: flex;
-      flex-direction: column;
-      gap: 8px;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
     }
-    .revenda-item {
+    .dropdown-select-header:hover { border-color: #006633; }
+    
+    .dropdown-options-list {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ced4da;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin-top: 4px;
+      z-index: 100;
+      max-height: 200px;
+      overflow-y: auto;
+      padding: 8px;
+    }
+    .dropdown-options-list.show { display: flex; flex-direction: column; gap: 6px; }
+    
+    .revenda-option {
       display: flex;
       align-items: center;
       gap: 8px;
       font-size: 13px;
+      padding: 6px 8px;
+      border-radius: 4px;
       cursor: pointer;
     }
-    .revenda-item input { cursor: pointer; width: 16px; height: 16px; }
+    .revenda-option:hover { background: #f1f8f5; }
+    .revenda-option input { cursor: pointer; width: 15px; height: 15px; }
 
     .form-actions { display: flex; gap: 10px; margin-top: 10px; }
     .btn-save { background: #006633; color: white; border: none; padding: 10px 20px; font-size: 13px; font-weight: bold; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
@@ -164,17 +192,23 @@
             </select>
           </div>
 
-          <!-- MESA / REVENDA (DINÂMICA) -->
-          <div class="form-group full-width" id="grpRevendasContainer">
-            <label id="lblRevenda">Mesa / Revenda *</label>
-            <div class="revendas-box" id="revendasCheckboxGroup">
-              <label class="revenda-item"><input type="checkbox" name="revenda" value="TODAS"> TODAS (Acesso Geral)</label>
-              <label class="revenda-item"><input type="checkbox" name="revenda" value="10"> 10 - Volume CF</label>
-              <label class="revenda-item"><input type="checkbox" name="revenda" value="20"> 20 - Volume GV</label>
-              <label class="revenda-item"><input type="checkbox" name="revenda" value="30"> 30 - Volume IT</label>
-              <label class="revenda-item"><input type="checkbox" name="revenda" value="40"> 40 - Volume TO</label>
-              <label class="revenda-item"><input type="checkbox" name="revenda" value="50"> 50 - Volume MA</label>
-              <label class="revenda-item"><input type="checkbox" name="revenda" value="60"> 60 - Volume MO</label>
+          <!-- MESA / REVENDA (LISTA SUSPENSA COM MÚLTIPLA SELEÇÃO) -->
+          <div class="form-group full-width">
+            <label>Mesa / Revenda *</label>
+            <div class="dropdown-select-box" id="dropdownRevendaBox">
+              <div class="dropdown-select-header" onclick="toggleDropdownRevenda()">
+                <span id="dropdownSelectedText">Selecione a(s) revenda(s)...</span>
+                <i class="fa-solid fa-chevron-down" id="dropdownChevron"></i>
+              </div>
+              <div class="dropdown-options-list" id="dropdownOptionsList">
+                <label class="revenda-option"><input type="checkbox" name="revenda" value="TODAS" onchange="atualizarTextoSelecionado()"> TODAS (Acesso Geral)</label>
+                <label class="revenda-option"><input type="checkbox" name="revenda" value="10" onchange="atualizarTextoSelecionado()"> 10 - Volume CF</label>
+                <label class="revenda-option"><input type="checkbox" name="revenda" value="20" onchange="atualizarTextoSelecionado()"> 20 - Volume GV</label>
+                <label class="revenda-option"><input type="checkbox" name="revenda" value="30" onchange="atualizarTextoSelecionado()"> 30 - Volume IT</label>
+                <label class="revenda-option"><input type="checkbox" name="revenda" value="40" onchange="atualizarTextoSelecionado()"> 40 - Volume TO</label>
+                <label class="revenda-option"><input type="checkbox" name="revenda" value="50" onchange="atualizarTextoSelecionado()"> 50 - Volume MA</label>
+                <label class="revenda-option"><input type="checkbox" name="revenda" value="60" onchange="atualizarTextoSelecionado()"> 60 - Volume MO</label>
+              </div>
             </div>
           </div>
 
@@ -254,7 +288,46 @@
       if (aba === 'outros') document.getElementById('abaOutros').style.display = 'block';
     }
 
-    // Regras de comportamento para cada Função
+    // Abrir/Fechar a lista suspensa customizada
+    function toggleDropdownRevenda() {
+      const list = document.getElementById('dropdownOptionsList');
+      list.classList.toggle('show');
+    }
+
+    // Fecha o dropdown se clicar fora dele
+    window.addEventListener('click', function(e) {
+      const box = document.getElementById('dropdownRevendaBox');
+      if (box && !box.contains(e.target)) {
+        document.getElementById('dropdownOptionsList').classList.remove('show');
+      }
+    });
+
+    function atualizarTextoSelecionado() {
+      const checkboxes = document.querySelectorAll('input[name="revenda"]:checked');
+      const textSpan = document.getElementById('dropdownSelectedText');
+      const func = document.getElementById('userFuncao').value;
+
+      // Se for supervisor, garante seleção única ao marcar uma nova opção
+      if (func === 'Supervisor' && checkboxes.length > 1) {
+        // Desmarca todas as outras exceto a última clicada
+        const ultimoClicado = event.target;
+        checkboxes.forEach(cb => {
+          if (cb !== ultimoClicado) cb.checked = false;
+        });
+      }
+
+      const atualizadas = document.querySelectorAll('input[name="revenda"]:checked');
+      if (atualizadas.length === 0) {
+        textSpan.innerText = 'Selecione a(s) revenda(s)...';
+        textSpan.style.color = '#888';
+      } else {
+        const valores = Array.from(atualizadas).map(cb => cb.parentNode.textContent.trim());
+        textSpan.innerText = valores.join(', ');
+        textSpan.style.color = '#333';
+      }
+    }
+
+    // Regras de comportamento por Função
     function aoMudarFuncao() {
       const func = document.getElementById('userFuncao').value;
       const checkboxes = document.querySelectorAll('input[name="revenda"]');
@@ -265,44 +338,33 @@
       checkboxes.forEach(cb => {
         cb.checked = false;
         cb.disabled = false;
-        cb.type = 'checkbox';
       });
+      atualizarTextoSelecionado();
 
       if (func === 'Administrador' || func === 'Gerente') {
-        // Gerente e Admin: múltiplas revendas permitidas
+        // Gerente e Admin: múltiplas revendas permitidas livremente
         grpCod.style.display = 'none';
         inputCod.required = false;
         inputCod.value = '';
       } else if (func === 'Supervisor') {
-        // Supervisor: apenas uma revenda (transformamos temporariamente em comportamento de rádio se preferir, ou validamos no submit)
+        // Supervisor: permite selecionar apenas 1 revenda
         grpCod.style.display = 'none';
         inputCod.required = false;
         inputCod.value = '';
-        
-        // Garante restrição visual de seleção única opcional para supervisor
-        checkboxes.forEach(cb => {
-          cb.addEventListener('change', function() {
-            if (document.getElementById('userFuncao').value === 'Supervisor' && this.checked) {
-              checkboxes.forEach(other => { if (other !== this) other.checked = false; });
-            }
-          });
-        });
-
       } else if (func === 'Vendedor') {
-        // Vendedor: seleciona mesa automaticamente com base no código do vendedor ou preenchimento guiado
+        // Vendedor: campo código vendedor disponível e preenchimento automático da mesa
         grpCod.style.display = 'flex';
         inputCod.required = true;
       }
     }
 
-    // Identifica e marca automaticamente a revenda do vendedor com base no código digitado opcionalmente ou regra padrão
+    // Atribuição automática da mesa do vendedor com base no código digitado
     document.getElementById('userCodVendedor').addEventListener('input', function() {
       const func = document.getElementById('userFuncao').value;
       if (func === 'Vendedor') {
         const cod = this.value.trim();
         const checkboxes = document.querySelectorAll('input[name="revenda"]');
         
-        // Exemplo de mapeamento por prefixo do código do vendedor (ajustável conforme sua operação)
         let revendaAlvo = '';
         if (cod.startsWith('1')) revendaAlvo = '10';
         else if (cod.startsWith('2')) revendaAlvo = '20';
@@ -313,8 +375,9 @@
 
         checkboxes.forEach(cb => {
           cb.checked = (cb.value === revendaAlvo);
-          cb.disabled = true; // Mantém travado pois é automático para vendedor
+          cb.disabled = true; // Trava para o vendedor ser automático
         });
+        atualizarTextoSelecionado();
       }
     });
 
@@ -379,14 +442,13 @@
       const cod_vendedor = document.getElementById('userCodVendedor').value;
       const ativo = document.getElementById('userAtivo').value === 'true';
 
-      // Coleta todas as revendas marcadas nas checkboxes
       const revendasSelecionadas = Array.from(document.querySelectorAll('input[name="revenda"]:checked')).map(cb => cb.value);
       
       if (revendasSelecionadas.length === 0) {
         return alert('Selecione pelo menos uma Mesa / Revenda.');
       }
 
-      const revenda = revendasSelecionadas.join(','); // Salva separadas por vírgula no banco
+      const revenda = revendasSelecionadas.join(',');
 
       if (!id && !senha) return alert('Informe a senha para o novo usuário.');
 
@@ -430,12 +492,12 @@
 
       aoMudarFuncao();
 
-      // Marca as revendas salvas do usuário
       const revsSalvas = (u.revenda || '').split(',');
       document.querySelectorAll('input[name="revenda"]').forEach(cb => {
         cb.checked = revsSalvas.includes(cb.value);
         if (u.funcao === 'Vendedor') cb.disabled = true;
       });
+      atualizarTextoSelecionado();
 
       document.getElementById('formTitle').innerText = `Editar Usuário #${u.id} - ${u.nome}`;
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -462,6 +524,7 @@
       document.getElementById('senhaHelp').innerText = '';
       document.getElementById('formTitle').innerText = 'Cadastro e Edição de Usuário';
       document.querySelectorAll('input[name="revenda"]').forEach(cb => { cb.disabled = false; cb.checked = false; });
+      atualizarTextoSelecionado();
       aoMudarFuncao();
     }
 
