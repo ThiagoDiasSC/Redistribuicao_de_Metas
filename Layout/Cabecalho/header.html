@@ -35,37 +35,38 @@
 </header>
 
 <script>
-  function atualizarNomeUsuario() {
-    const spanNome = document.getElementById('headerFirstName');
-    if (!spanNome) return;
+  (function() {
+    function preencherPrimeiroNome() {
+      const span = document.getElementById('headerFirstName');
+      if (!span) return false;
 
-    const usuarioData = localStorage.getItem('usuarioLogado');
-    if (usuarioData) {
-      try {
-        const parsed = JSON.parse(usuarioData);
-        // Tenta buscar o nome em qualquer estrutura possível salva no localStorage
-        const nomeCompleto = parsed.usuario?.nome || parsed.nome || parsed.user?.nome || parsed.email || '';
-        
-        if (nomeCompleto) {
-          // Extrai apenas o primeiro nome (ex: "Thiago Dias Oliveira" vira "Thiago")
-          const primeiroNome = nomeCompleto.trim().split(' ')[0];
-          spanNome.innerText = primeiroNome;
-          return true;
+      const usuarioData = localStorage.getItem('usuarioLogado');
+      if (usuarioData) {
+        try {
+          const parsed = JSON.parse(usuarioData);
+          const nomeCompleto = parsed.usuario?.nome || parsed.nome || '';
+          if (nomeCompleto) {
+            const primeiroNome = nomeCompleto.trim().split(' ')[0];
+            span.innerText = primeiroNome;
+            return true;
+          }
+        } catch (e) {
+          console.error('Erro ao ler dados do usuário:', e);
         }
-      } catch (e) {
-        console.error('Erro ao ler dados do usuário:', e);
       }
+      span.innerText = 'Usuário';
+      return true;
     }
-    spanNome.innerText = 'Usuário';
-    return false;
-  }
 
-  // Tenta atualizar imediatamente e faz uma verificação contínua caso o fetch do header demore frações de segundo
-  if (!atualizarNomeUsuario()) {
-    const tentativas = setInterval(() => {
-      if (atualizarNomeUsuario() || clearInterval(tentativas));
-    }, 100);
-  }
+    // Tenta atualizar imediatamente e faz varredura caso o DOM do header ainda esteja montando
+    if (!preencherPrimeiroNome()) {
+      const intervalo = setInterval(() => {
+        if (preencherPrimeiroNome()) {
+          clearInterval(intervalo);
+        }
+      }, 50);
+    }
+  })();
 
   function handleLogout() {
     localStorage.removeItem('usuarioLogado');
