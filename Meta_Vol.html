@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MEGA GIRO - Meta de Volume</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="logo.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="Layout/style.css">
   <style>
@@ -110,6 +112,13 @@
 </head>
 <body>
 
+  <!-- PROTEÇÃO DE SESSÃO -->
+  <script>
+    if (!localStorage.getItem('usuarioLogado')) {
+      window.location.href = 'index.html';
+    }
+  </script>
+
   <!-- Cabeçalho -->
   <div id="header-container"></div>
 
@@ -119,7 +128,6 @@
       <div class="subtitle">Distribuição por produto único e vendedor com potencial do histórico (valores inteiros).</div>
     </div>
 
-    <!-- Navegação pelas Revendas e Submenu Exportação -->
     <div class="nav-tabs">
       <button class="tab-btn active" onclick="trocarRevenda('10', this)">10 - Volume CF</button>
       <button class="tab-btn" onclick="trocarRevenda('20', this)">20 - Volume MA</button>
@@ -133,7 +141,6 @@
     <div class="card">
       <div id="loading" class="loading">Carregando metas...</div>
       
-      <!-- Tabela de Distribuição Normal -->
       <div class="table-container" id="tableContainer" style="display: none;">
         <table id="tabelaMetas">
           <thead id="theadMetas"></thead>
@@ -148,7 +155,6 @@
         <button id="btnSalvar" class="btn-salvar" onclick="salvarMetas()">Salvar Alterações</button>
       </div>
 
-      <!-- Container do Submenu Exportação -->
       <div id="exportContainer" style="display: none;">
         <div class="export-header-bar">
           <div>

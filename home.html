@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MEGA GIRO - Painel de Gestão</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="logo.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="Layout/style.css">
   <style>
@@ -75,7 +77,6 @@
     .module-title { font-size: 18px; font-weight: 700; color: #1a1a1a; margin-bottom: 6px; }
     .module-desc { font-size: 13px; color: #666; line-height: 1.4; }
 
-    /* Estilos do Campo de Importações Agrupado por Seção */
     .import-status-card {
       background: white;
       border-radius: 10px;
@@ -146,6 +147,13 @@
 </head>
 <body>
 
+  <!-- PROTEÇÃO DE SESSÃO -->
+  <script>
+    if (!localStorage.getItem('usuarioLogado')) {
+      window.location.href = 'index.html';
+    }
+  </script>
+
   <!-- Cabeçalho -->
   <div id="header-container"></div>
 
@@ -155,7 +163,6 @@
       <p>Selecione um dos módulos abaixo no menu superior ou pelos cards para começar.</p>
     </div>
 
-    <!-- Módulos Principais -->
     <h2 class="section-title"><i class="fa-solid fa-cubes"></i> Módulos do Sistema</h2>
     <div class="modules-grid">
       <a href="Meta_Vol.html" class="module-card">
@@ -183,14 +190,12 @@
       </a>
     </div>
 
-    <!-- Campo de Status das Importações Dividido em Partes -->
     <div class="import-status-card">
       <h2 class="section-title" style="margin-bottom: 5px;">
         <i class="fa-solid fa-clock-rotate-left"></i> Status das Últimas Importações
       </h2>
       <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Data e hora em que os arquivos de dados foram atualizados pela última vez.</p>
 
-      <!-- Grupo 1: Clientes -->
       <div class="import-group">
         <div class="import-group-title"><i class="fa-solid fa-users"></i> Atualizações de Clientes</div>
         <div class="import-grid">
@@ -205,7 +210,6 @@
         </div>
       </div>
 
-      <!-- Grupo 2: Meta de Volume -->
       <div class="import-group">
         <div class="import-group-title"><i class="fa-solid fa-boxes-stacked"></i> Meta de Volume</div>
         <div class="import-grid">
@@ -224,7 +228,6 @@
         </div>
       </div>
 
-      <!-- Grupo 3: Meta de Cobertura -->
       <div class="import-group">
         <div class="import-group-title"><i class="fa-solid fa-bullseye"></i> Meta de Cobertura</div>
         <div class="import-grid">

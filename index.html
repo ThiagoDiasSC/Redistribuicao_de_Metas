@@ -4,13 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login - MEGA GIRO</title>
+  <!-- Favicon / Logotipo na aba do navegador -->
+  <link rel="icon" type="image/png" href="logo.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="Layout/style.css">
 </head>
 <body class="auth-page">
 
   <main class="card-container">
-    <!-- Banner Verde do Cabeçalho -->
     <div class="banner-header">
       <svg class="banner-logo" viewBox="0 0 400 180" xmlns="http://www.w3.org/2000/svg">
         <g fill="#ffffff">
@@ -22,7 +23,6 @@
       </svg>
     </div>
 
-    <!-- Conteúdo Interno do Cartão -->
     <div class="card-content">
       <h2 class="title">Acesso ao Sistema</h2>
       <p class="instructions">Informe o seu e-mail e senha corporativos para aceder.</p>
@@ -105,9 +105,11 @@
           messageBox.className = 'message-box success';
           messageBox.innerText = data.message;
 
+          // Salva os dados do usuário autenticado no localStorage
           localStorage.setItem('usuarioLogado', JSON.stringify({
             email: username,
-            autenticado: true
+            autenticado: true,
+            usuario: data.usuario || {}
           }));
 
           setTimeout(() => {

@@ -321,7 +321,7 @@ app.patch('/api/usuarios/:id/status', async (req, res) => {
 });
 
 // ==========================================
-// 1. IMPORTAÇÃO: Base de Clientes (Corrigida e Dinâmica)
+// 1. IMPORTAÇÃO: Base de Clientes (Dinâmica e Otimizada)
 // ==========================================
 app.post('/api/import/clientes', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'Nenhum arquivo enviado.' });
@@ -433,7 +433,6 @@ app.post('/api/import/clientes', upload.single('file'), async (req, res) => {
       return res.status(400).json({ success: false, message: 'Nenhum cliente válido encontrado.' });
     }
 
-    // Montagem dinâmica das colunas de UPDATE
     const arrayColunas = Array.from(colunasCapturadas).filter(c => c !== 'Cod_Completo');
     const setClause = arrayColunas.map(c => `"${c}" = t."${c}"`).join(', ');
     const allColsFormatted = Array.from(colunasCapturadas).map(c => `"${c}"`).join(', ');

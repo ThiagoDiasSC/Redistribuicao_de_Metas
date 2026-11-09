@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MEGA GIRO - Gestão de Cadastros</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="logo.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="Layout/style.css">
   <style>
@@ -87,6 +89,13 @@
 </head>
 <body>
 
+  <!-- PROTEÇÃO DE SESSÃO -->
+  <script>
+    if (!localStorage.getItem('usuarioLogado')) {
+      window.location.href = 'index.html';
+    }
+  </script>
+
   <!-- Cabeçalho Dinâmico -->
   <div id="header-container"></div>
 
@@ -96,13 +105,11 @@
       <div class="subtitle">Gerenciamento de acessos de usuários, perfis e tabelas auxiliares.</div>
     </div>
 
-    <!-- Navegação de Abas -->
     <div class="nav-tabs">
       <button class="tab-btn active" onclick="trocarAbaCadastro('usuarios', this)"><i class="fa-solid fa-user-shield"></i> Submenu Usuários</button>
       <button class="tab-btn" onclick="trocarAbaCadastro('outros', this)"><i class="fa-solid fa-list-check"></i> Outros Cadastros</button>
     </div>
 
-    <!-- SUBMENU: USUÁRIOS -->
     <div id="abaUsuarios" class="card tab-content">
       <div class="section-title">
         <i class="fa-solid fa-user-gear"></i> <span id="formTitle">Cadastro e Edição de Usuário</span>
@@ -151,7 +158,6 @@
             </select>
           </div>
 
-          <!-- CAMPO VENDEDOR OCULTO POR PADRÃO -->
           <div class="form-group" id="grpCodVendedor" style="display: none;">
             <label for="userCodVendedor">Código Vendedor (Master Cross) *</label>
             <input type="text" id="userCodVendedor" placeholder="Ex: 101, 251">
@@ -199,7 +205,6 @@
       </div>
     </div>
 
-    <!-- ABA SECUNDÁRIA -->
     <div id="abaOutros" class="card tab-content" style="display: none;">
       <div class="section-title">
         <i class="fa-solid fa-folder-tree"></i> Tabelas Auxiliares de Cadastro
@@ -237,7 +242,6 @@
       if (aba === 'outros') document.getElementById('abaOutros').style.display = 'block';
     }
 
-    // EXIBE O CAMPO DE CÓDIGO VENDEDOR APENAS SE A FUNÇÃO FOR "Vendedor"
     function aoMudarFuncao() {
       const func = document.getElementById('userFuncao').value;
       const grpCod = document.getElementById('grpCodVendedor');
@@ -336,7 +340,7 @@
         const data = await res.json();
 
         if (data.success) {
-          alert(data.message);
+          alert(data.message || 'Salvo com sucesso!');
           limparFormulario();
           carregarUsuarios();
         } else {
@@ -395,6 +399,11 @@
       document.getElementById('senhaHelp').innerText = '';
       document.getElementById('formTitle').innerText = 'Cadastro e Edição de Usuário';
       aoMudarFuncao();
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('usuarioLogado');
+      window.location.href = 'index.html';
     }
 
     window.onload = () => {
