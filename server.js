@@ -11,13 +11,15 @@ const nodemailer = require('nodemailer');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configuração de conexão do PostgreSQL
+// String de conexão direta com a base de dados do Supabase (Nuvem)
+const SUPABASE_CONNECTION_STRING = 'postgresql://postgres.awnklqofukqdlczmqlsl:Mega230499%40Sc@aws-0-us-east-1.pooler.supabase.com:6543/postgres';
+
+// Configuração de conexão do PostgreSQL (Prioriza a variável do Render ou usa a conexão Supabase)
 const pool = new Pool({
-  user: 'postgres',          
-  host: 'localhost',
-  database: 'Metas',         
-  password: '230499@Sc',     
-  port: 5432,
+  connectionString: process.env.DATABASE_URL || SUPABASE_CONNECTION_STRING,
+  ssl: {
+    rejectUnauthorized: false // Obrigatório para conexões SSL na nuvem do Supabase
+  }
 });
 
 const upload = multer({ dest: 'uploads/' });
@@ -84,7 +86,7 @@ async function registrarUltimaImportacao(client, tipoImportacao) {
   `, [tipoImportacao]);
 }
 
-// Inicializar a estrutura da tabela MG_Usuarios caso não exista (sem dados fixos)
+// Inicializar a estrutura da tabela MG_Usuarios caso não exista no Supabase
 async function inicializarTabelaUsuarios() {
   let client;
   try {
@@ -237,7 +239,7 @@ app.get('/api/import/ultimas-datas', async (req, res) => {
 });
 
 // ==========================================
-// API: AUTENTICAÇÃO DE LOGIN (100% via PostgreSQL MG_Usuarios)
+// API: AUTENTICAÇÃO DE LOGIN (100% via Supabase / PostgreSQL MG_Usuarios)
 // ==========================================
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
