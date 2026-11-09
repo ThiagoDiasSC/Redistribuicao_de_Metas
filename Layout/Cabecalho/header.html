@@ -29,7 +29,46 @@
   </nav>
 
   <div class="user-info">
-    <span class="user-name"><i class="fa-regular fa-user"></i> Thiago Dias</span>
+    <span class="user-name"><i class="fa-regular fa-user"></i> <span id="headerFirstName">Carregando...</span></span>
     <button onclick="handleLogout()" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Sair</button>
   </div>
 </header>
+
+<script>
+  function atualizarNomeUsuario() {
+    const spanNome = document.getElementById('headerFirstName');
+    if (!spanNome) return;
+
+    const usuarioData = localStorage.getItem('usuarioLogado');
+    if (usuarioData) {
+      try {
+        const parsed = JSON.parse(usuarioData);
+        // Tenta buscar o nome em qualquer estrutura possível salva no localStorage
+        const nomeCompleto = parsed.usuario?.nome || parsed.nome || parsed.user?.nome || parsed.email || '';
+        
+        if (nomeCompleto) {
+          // Extrai apenas o primeiro nome (ex: "Thiago Dias Oliveira" vira "Thiago")
+          const primeiroNome = nomeCompleto.trim().split(' ')[0];
+          spanNome.innerText = primeiroNome;
+          return true;
+        }
+      } catch (e) {
+        console.error('Erro ao ler dados do usuário:', e);
+      }
+    }
+    spanNome.innerText = 'Usuário';
+    return false;
+  }
+
+  // Tenta atualizar imediatamente e faz uma verificação contínua caso o fetch do header demore frações de segundo
+  if (!atualizarNomeUsuario()) {
+    const tentativas = setInterval(() => {
+      if (atualizarNomeUsuario() || clearInterval(tentativas));
+    }, 100);
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('usuarioLogado');
+    window.location.href = 'index.html';
+  }
+</script>
