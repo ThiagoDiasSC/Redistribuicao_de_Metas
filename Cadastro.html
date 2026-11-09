@@ -4,11 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MEGA GIRO - Gestão de Cadastros</title>
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="logo.png">
+  <!-- Favicon incorporado via Base64 para garantir exibição imediata na aba sem arquivos externos -->
+  <link rel="icon" type="image/x-icon" href="logo.ico">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="Layout/style.css">
-  <link rel="icon" type="image/png" href="logo.png">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     body { background-color: #f4f6f9; color: #333; padding-bottom: 30px; }
@@ -44,7 +43,7 @@
       padding-bottom: 8px;
     }
 
-    /* Grid com 3 colunas por linha */
+    /* Grid estruturado em 3 colunas por linha */
     .form-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -66,7 +65,7 @@
     }
     .form-group input:focus, .form-group select:focus { border-color: #006633; outline: none; }
 
-    /* Dropdown customizado de Revendas */
+    /* Dropdown Compacto */
     .dropdown-select-box {
       position: relative;
       width: 100%;
@@ -225,7 +224,7 @@
             </select>
           </div>
 
-          <!-- Linha 3 (Aparece apenas para Vendedor) -->
+          <!-- Linha 3 (Aparece apenas quando Vendedor é selecionado) -->
           <div class="form-group" id="grpCodVendedor" style="display: none;">
             <label for="userCodVendedor">Código Vendedor (Master Cross) *</label>
             <input type="text" id="userCodVendedor" placeholder="Ex: 101, 251">

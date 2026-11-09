@@ -5,10 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login - MEGA GIRO</title>
   <!-- Favicon / Logotipo na aba do navegador -->
-  <link rel="icon" type="image/png" href="logo.png">
+  <link rel="icon" type="image/x-icon" href="logo.ico">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="Layout/style.css">
-  <link rel="icon" type="image/png" href="logo.png">
 </head>
 <body class="auth-page">
 
@@ -83,7 +82,6 @@
 
     async function handleLogin(event) {
       event.preventDefault();
-
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
       const messageBox = document.getElementById('messageBox');
@@ -94,9 +92,7 @@
       try {
         const response = await fetch(`${API_BASE_URL}/api/login`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
         });
 
@@ -105,14 +101,11 @@
         if (data.success) {
           messageBox.className = 'message-box success';
           messageBox.innerText = data.message;
-
-          // Salva os dados do usuário autenticado no localStorage
           localStorage.setItem('usuarioLogado', JSON.stringify({
             email: username,
             autenticado: true,
             usuario: data.usuario || {}
           }));
-
           setTimeout(() => {
             window.location.href = 'home.html';
           }, 1500);
@@ -121,9 +114,9 @@
           messageBox.innerText = data.message || 'E-mail ou senha incorretos.';
         }
       } catch (error) {
-        console.error('Erro de conexão:', error);
+        console.error('Erro:', error);
         messageBox.className = 'message-box error';
-        messageBox.innerText = 'Não foi possível conectar ao servidor. Verifique se o backend (node server.js) está rodando.';
+        messageBox.innerText = 'Não foi possível conectar ao servidor.';
       }
     }
   </script>
