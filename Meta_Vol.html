@@ -32,11 +32,39 @@
     .tab-btn.tab-export:hover { background: #115c38; }
 
     .card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-    .table-container { overflow-x: auto; margin-top: 15px; border: 1px solid #e0e0e0; border-radius: 6px; }
+    .table-container { overflow-x: auto; margin-top: 15px; border: 1px solid #e0e0e0; border-radius: 6px; position: relative; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
     th, td { padding: 10px 12px; border-bottom: 1px solid #eee; white-space: nowrap; }
     th { background: #f8f9fa; color: #495057; font-weight: 700; position: sticky; top: 0; z-index: 2; border-bottom: 2px solid #dee2e6; }
     tr:hover { background: #f1f8f5; }
+
+    /* --- CONGELAMENTO (STICKY) DAS 8 PRIMEIRAS COLUNAS --- */
+    #tabelaMetas th:nth-child(1), #tabelaMetas td:nth-child(1) { position: sticky; left: 0px; z-index: 2; background-color: #fff; }
+    #tabelaMetas th:nth-child(2), #tabelaMetas td:nth-child(2) { position: sticky; left: 80px; z-index: 2; background-color: #fff; }
+    #tabelaMetas th:nth-child(3), #tabelaMetas td:nth-child(3) { position: sticky; left: 210px; z-index: 2; background-color: #fff; }
+    #tabelaMetas th:nth-child(4), #tabelaMetas td:nth-child(4) { position: sticky; left: 305px; z-index: 2; background-color: #fff; }
+    #tabelaMetas th:nth-child(5), #tabelaMetas td:nth-child(5) { position: sticky; left: 385px; z-index: 2; background-color: #e8f5e9; }
+    #tabelaMetas th:nth-child(6), #tabelaMetas td:nth-child(6) { position: sticky; left: 470px; z-index: 2; background-color: #e3f2fd; }
+    #tabelaMetas th:nth-child(7), #tabelaMetas td:nth-child(7) { position: sticky; left: 585px; z-index: 2; background-color: #fff; }
+    #tabelaMetas th:nth-child(8), #tabelaMetas td:nth-child(8) { position: sticky; left: 685px; z-index: 2; box-shadow: 3px 0 6px rgba(0,0,0,0.06); }
+
+    /* Prioridade de camadas e cores para os cabeçalhos fixos */
+    #tabelaMetas th:nth-child(-n+8) {
+      background-color: #f8f9fa;
+      z-index: 4;
+    }
+
+    /* Cores de fundo mantidas nas colunas fixas coloridas */
+    #tabelaMetas td.bg-meta { background-color: #e8f5e9 !important; }
+    #tabelaMetas td.bg-umb { background-color: #e3f2fd !important; }
+    #tabelaMetas td.bg-dif-zero { background-color: #d1e7dd !important; }
+    #tabelaMetas td.bg-dif-erro { background-color: #f8d7da !important; }
+
+    /* Efeito de hover consistente nas colunas fixas */
+    #tabelaMetas tbody tr:hover td:nth-child(-n+8) {
+      background-color: #eaf3ee;
+    }
+    /* ---------------------------------------------------- */
 
     .bg-meta { background-color: #e8f5e9; font-weight: bold; color: #1b5e20; }
     .bg-umb { background-color: #e3f2fd; font-weight: bold; color: #0d47a1; text-align: center; }
@@ -201,39 +229,38 @@
     let dadosExportacaoGlobal = null;
 
     async function carregarLayout() {
-    try {
-      const resHeader = await fetch('Layout/Cabecalho/header.html');
-      if (resHeader.ok) {
-        document.getElementById('header-container').innerHTML = await resHeader.text();
-        
-        // --- INSERE O PRIMEIRO NOME ASSIM QUE O HEADER É CARREGADO ---
-        const usuarioData = localStorage.getItem('usuarioLogado');
-        if (usuarioData) {
-          try {
-            const parsed = JSON.parse(usuarioData);
-            const nomeCompleto = parsed.usuario?.nome || parsed.nome || '';
-            if (nomeCompleto) {
-              const primeiroNome = nomeCompleto.trim().split(' ')[0];
-              const span = document.getElementById('headerFirstName');
-              if (span) span.innerText = primeiroNome;
+      try {
+        const resHeader = await fetch('Layout/Cabecalho/header.html');
+        if (resHeader.ok) {
+          document.getElementById('header-container').innerHTML = await resHeader.text();
+          
+          const usuarioData = localStorage.getItem('usuarioLogado');
+          if (usuarioData) {
+            try {
+              const parsed = JSON.parse(usuarioData);
+              const nomeCompleto = parsed.usuario?.nome || parsed.nome || '';
+              if (nomeCompleto) {
+                const primeiroNome = nomeCompleto.trim().split(' ')[0];
+                const span = document.getElementById('headerFirstName');
+                if (span) span.innerText = primeiroNome;
+              }
+            } catch (e) {
+              console.error('Erro ao ler usuário:', e);
             }
-          } catch (e) {
-            console.error('Erro ao ler usuário:', e);
           }
         }
+
+        const resFooter = await fetch('Layout/Rodape/footer.html');
+        if (resFooter.ok) document.getElementById('footer-container').innerHTML = await resFooter.text();
+      } catch (err) {
+        console.error('Erro ao carregar layout:', err);
       }
-
-      const resFooter = await fetch('Layout/Rodape/footer.html');
-      if (resFooter.ok) document.getElementById('footer-container').innerHTML = await resFooter.text();
-    } catch (err) {
-      console.error('Erro ao carregar layout:', err);
     }
-  }
 
-  function handleLogout() {
-    localStorage.removeItem('usuarioLogado');
-    window.location.href = 'index.html';
-  }
+    function handleLogout() {
+      localStorage.removeItem('usuarioLogado');
+      window.location.href = 'index.html';
+    }
 
     async function carregarMetas(revenda) {
       document.getElementById('loading').style.display = 'block';
