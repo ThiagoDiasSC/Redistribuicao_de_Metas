@@ -25,7 +25,7 @@
     .subtitle { font-size: 13px; color: #d1e7dd; margin-top: 4px; }
 
     .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-    .tab-btn { background: #e9ecef; border: 1px solid #ced4da; padding: 10px 18px; border-radius: 20px; font-size: 14px; font-weight: 600; color: #495057; cursor: pointer; transition: all 0.2s; }
+    .tab-btn { background: #e9ecef; border: 1px solid #ced4da; padding: 10px 18px; border-radius: 20px; font-size: 14px; font-weight: 600; color: #495057; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
     .tab-btn:hover { background: #dee2e6; }
     .tab-btn.active { background: #006633; color: white; border-color: #006633; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     .tab-btn.tab-export { background: #157347; color: white; border-color: #157347; }
@@ -48,23 +48,12 @@
     #tabelaMetas th:nth-child(7), #tabelaMetas td:nth-child(7) { position: sticky; left: 585px; z-index: 2; background-color: #fff; }
     #tabelaMetas th:nth-child(8), #tabelaMetas td:nth-child(8) { position: sticky; left: 685px; z-index: 2; box-shadow: 3px 0 6px rgba(0,0,0,0.06); }
 
-    /* Prioridade de camadas e cores para os cabeçalhos fixos */
-    #tabelaMetas th:nth-child(-n+8) {
-      background-color: #f8f9fa;
-      z-index: 4;
-    }
-
-    /* Cores de fundo mantidas nas colunas fixas coloridas */
+    #tabelaMetas th:nth-child(-n+8) { background-color: #f8f9fa; z-index: 4; }
     #tabelaMetas td.bg-meta { background-color: #e8f5e9 !important; }
     #tabelaMetas td.bg-umb { background-color: #e3f2fd !important; }
     #tabelaMetas td.bg-dif-zero { background-color: #d1e7dd !important; }
     #tabelaMetas td.bg-dif-erro { background-color: #f8d7da !important; }
-
-    /* Efeito de hover consistente nas colunas fixas */
-    #tabelaMetas tbody tr:hover td:nth-child(-n+8) {
-      background-color: #eaf3ee;
-    }
-    /* ---------------------------------------------------- */
+    #tabelaMetas tbody tr:hover td:nth-child(-n+8) { background-color: #eaf3ee; }
 
     .bg-meta { background-color: #e8f5e9; font-weight: bold; color: #1b5e20; }
     .bg-umb { background-color: #e3f2fd; font-weight: bold; color: #0d47a1; text-align: center; }
@@ -156,14 +145,9 @@
       <div class="subtitle">Distribuição por produto único e vendedor com potencial do histórico (valores inteiros).</div>
     </div>
 
-    <div class="nav-tabs">
-      <button class="tab-btn active" onclick="trocarRevenda('10', this)">10 - Volume CF</button>
-      <button class="tab-btn" onclick="trocarRevenda('20', this)">20 - Volume MA</button>
-      <button class="tab-btn" onclick="trocarRevenda('30', this)">30 - Volume GV</button>
-      <button class="tab-btn" onclick="trocarRevenda('40', this)">40 - Volume TO</button>
-      <button class="tab-btn" onclick="trocarRevenda('50', this)">50 - Volume ITA</button>
-      <button class="tab-btn" onclick="trocarRevenda('60', this)">60 - Volume JM</button>
-      <button class="tab-btn tab-export" onclick="abrirExportacao(this)"><i class="fa-solid fa-file-export"></i> Exportação</button>
+    <!-- Abas de Revenda Geradas Dinamicamente conforme Permissão -->
+    <div class="nav-tabs" id="navTabsRevendas">
+      <!-- Inserido via JavaScript -->
     </div>
 
     <div class="card">
@@ -224,9 +208,19 @@
   <div id="footer-container"></div>
 
   <script>
-    let revendaAtual = '10';
+    let revendaAtual = '';
     let dadosAtuais = null;
     let dadosExportacaoGlobal = null;
+
+    // Todas as revendas disponíveis no sistema
+    const revendasCatalogo = [
+      { id: '10', nome: '10 - Volume CF' },
+      { id: '20', nome: '20 - Volume MA' },
+      { id: '30', nome: '30 - Volume GV' },
+      { id: '40', nome: '40 - Volume TO' },
+      { id: '50', nome: '50 - Volume ITA' },
+      { id: '60', nome: '60 - Volume JM' }
+    ];
 
     async function carregarLayout() {
       try {
@@ -260,6 +254,66 @@
     function handleLogout() {
       localStorage.removeItem('usuarioLogado');
       window.location.href = 'index.html';
+    }
+
+    // Inicializa as abas de revenda e o botão de exportação condicional
+    function inicializarAbasRevenda() {
+      const navContainer = document.getElementById('navTabsRevendas');
+      navContainer.innerHTML = '';
+
+      let revendasPermitidas = [];
+      let funcaoUsuario = '';
+      const usuarioData = localStorage.getItem('usuarioLogado');
+      
+      if (usuarioData) {
+        try {
+          const parsed = JSON.parse(usuarioData);
+          const usuario = parsed.usuario || parsed;
+          const revendaStr = usuario.revenda || 'TODAS';
+          funcaoUsuario = usuario.funcao || '';
+
+          if (revendaStr.includes('TODAS') || funcaoUsuario === 'Administrador') {
+            revendasPermitidas = revendasCatalogo.map(r => r.id);
+          } else {
+            revendasPermitidas = revendaStr.split(',').map(r => r.trim());
+          }
+        } catch (e) {
+          console.error('Erro ao ler revendas permitidas:', e);
+          revendasPermitidas = ['10'];
+        }
+      } else {
+        revendasPermitidas = ['10'];
+      }
+
+      // Filtra o catálogo com base nas revendas que o usuário tem permissão para ver
+      const abasVisiveis = revendasCatalogo.filter(r => revendasPermitidas.includes(r.id));
+
+      if (abasVisiveis.length === 0) {
+        navContainer.innerHTML = '<span style="color: red; font-size: 13px;">Nenhuma revenda autorizada para este usuário.</span>';
+        return;
+      }
+
+      // Cria os botões das abas permitidas
+      abasVisiveis.forEach((rev, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `tab-btn ${idx === 0 ? 'active' : ''}`;
+        btn.innerText = rev.nome;
+        btn.onclick = (e) => trocarRevenda(rev.id, btn);
+        navContainer.appendChild(btn);
+      });
+
+      // ADICIONA O BOTÃO DE EXPORTAÇÃO APENAS SE FOR ADMINISTRADOR
+      if (funcaoUsuario === 'Administrador') {
+        const btnExport = document.createElement('button');
+        btnExport.className = 'tab-btn tab-export';
+        btnExport.innerHTML = '<i class="fa-solid fa-file-export"></i> Exportação';
+        btnExport.onclick = (e) => abrirExportacao(btnExport);
+        navContainer.appendChild(btnExport);
+      }
+
+      // Carrega automaticamente a primeira revenda permitida
+      revendaAtual = abasVisiveis[0].id;
+      carregarMetas(revendaAtual);
     }
 
     async function carregarMetas(revenda) {
@@ -537,9 +591,9 @@
       }
     }
 
-    window.onload = () => {
-      carregarLayout();
-      carregarMetas('10');
+    window.onload = async () => {
+      await carregarLayout();
+      inicializarAbasRevenda();
     };
   </script>
 </body>

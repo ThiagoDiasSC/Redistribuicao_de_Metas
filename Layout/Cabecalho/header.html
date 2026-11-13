@@ -13,7 +13,7 @@
   </div>
 
   <!-- Menu Principal com links para as páginas dedicadas -->
-  <nav class="main-menu">
+  <nav class="main-menu" id="mainMenu">
     <a href="Meta_Vol.html" class="menu-item" id="menu-vol">
       <i class="fa-solid fa-chart-column"></i> Meta de Volume
     </a>
@@ -33,3 +33,49 @@
     <button onclick="handleLogout()" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Sair</button>
   </div>
 </header>
+
+<script>
+  (function() {
+    function aplicarPermissoesHeader() {
+      const usuarioData = localStorage.getItem('usuarioLogado');
+      if (!usuarioData) return false;
+
+      try {
+        const parsed = JSON.parse(usuarioData);
+        const usuario = parsed.usuario || parsed;
+
+        // 1. Exibe o primeiro nome do usuário
+        if (usuario && usuario.nome) {
+          const primeiroNome = usuario.nome.trim().split(' ')[0];
+          const span = document.getElementById('headerFirstName');
+          if (span) span.innerText = primeiroNome;
+        }
+
+        // 2. Se for Gerente ou Supervisor, oculta os menus de Importações e Cadastro globalmente
+        const funcao = usuario?.funcao || '';
+        if (funcao === 'Gerente' || funcao === 'Supervisor') {
+          const menuImp = document.getElementById('menu-imp');
+          const menuCad = document.getElementById('menu-cad');
+          if (menuImp) menuImp.style.display = 'none';
+          if (menuCad) menuCad.style.display = 'none';
+        }
+        return true;
+      } catch (e) {
+        console.error('Erro ao processar permissões do usuário:', e);
+        return false;
+      }
+    }
+
+    // Varredura inteligente para garantir que o script pegue o elemento logo após o fetch
+    if (!aplicarPermissoesHeader()) {
+      const intervalo = setInterval(() => {
+        if (aplicarPermissoesHeader() || clearInterval(intervalo));
+      }, 30);
+    }
+  })();
+
+  function handleLogout() {
+    localStorage.removeItem('usuarioLogado');
+    window.location.href = 'index.html';
+  }
+</script>
