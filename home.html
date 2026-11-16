@@ -164,7 +164,7 @@
     </div>
 
     <h2 class="section-title"><i class="fa-solid fa-cubes"></i> Módulos do Sistema</h2>
-    <div class="modules-grid">
+    <div class="modules-grid" id="modulesGrid">
       <a href="Meta_Vol.html" class="module-card">
         <div class="module-icon"><i class="fa-solid fa-chart-column"></i></div>
         <div class="module-title">Meta de Volume</div>
@@ -177,13 +177,15 @@
         <div class="module-desc">Acompanhamento e distribuição de metas de cobertura da base ativada.</div>
       </a>
 
-      <a href="Import.html" class="module-card">
+      <!-- Card Importações (Oculto para Gerente e Supervisor) -->
+      <a href="Import.html" class="module-card" id="card-import">
         <div class="module-icon"><i class="fa-solid fa-file-import"></i></div>
         <div class="module-title">Importações</div>
         <div class="module-desc">Importação unificada das bases de clientes, produtos, histórico e CIA.</div>
       </a>
 
-      <a href="Cadastro.html" class="module-card">
+      <!-- Card Cadastro (Oculto para Gerente e Supervisor) -->
+      <a href="Cadastro.html" class="module-card" id="card-cadastro">
         <div class="module-icon"><i class="fa-solid fa-pen-to-square"></i></div>
         <div class="module-title">Cadastro</div>
         <div class="module-desc">Manutenção e parâmetros gerais de cadastros do sistema.</div>
@@ -250,39 +252,50 @@
 
   <script>
     async function carregarLayout() {
-    try {
-      const resHeader = await fetch('Layout/Cabecalho/header.html');
-      if (resHeader.ok) {
-        document.getElementById('header-container').innerHTML = await resHeader.text();
-        
-        // --- INSERE O PRIMEIRO NOME ASSIM QUE O HEADER É CARREGADO ---
-        const usuarioData = localStorage.getItem('usuarioLogado');
-        if (usuarioData) {
-          try {
-            const parsed = JSON.parse(usuarioData);
-            const nomeCompleto = parsed.usuario?.nome || parsed.nome || '';
-            if (nomeCompleto) {
-              const primeiroNome = nomeCompleto.trim().split(' ')[0];
-              const span = document.getElementById('headerFirstName');
-              if (span) span.innerText = primeiroNome;
+      try {
+        const resHeader = await fetch('Layout/Cabecalho/header.html');
+        if (resHeader.ok) {
+          document.getElementById('header-container').innerHTML = await resHeader.text();
+          
+          const usuarioData = localStorage.getItem('usuarioLogado');
+          if (usuarioData) {
+            try {
+              const parsed = JSON.parse(usuarioData);
+              const usuario = parsed.usuario || parsed;
+              
+              // 1. Preenche o primeiro nome
+              if (usuario && usuario.nome) {
+                const primeiroNome = usuario.nome.trim().split(' ')[0];
+                const span = document.getElementById('headerFirstName');
+                if (span) span.innerText = primeiroNome;
+              }
+
+              // 2. Oculta os menus de Importações e Cadastro no cabeçalho se for Gerente ou Supervisor
+              const funcao = usuario?.funcao || '';
+              if (funcao === 'Gerente' || funcao === 'Supervisor') {
+                const menuImp = document.getElementById('menu-imp');
+                const menuCad = document.getElementById('menu-cad');
+                if (menuImp) menuImp.style.display = 'none';
+                if (menuCad) menuCad.style.display = 'none';
+
+                // 3. Oculta também os cards de módulos correspondentes na Home
+                const cardImport = document.getElementById('card-import');
+                const cardCadastro = document.getElementById('card-cadastro');
+                if (cardImport) cardImport.style.display = 'none';
+                if (cardCadastro) cardCadastro.style.display = 'none';
+              }
+            } catch (e) {
+              console.error('Erro ao ler usuário no header:', e);
             }
-          } catch (e) {
-            console.error('Erro ao ler usuário:', e);
           }
         }
+
+        const resFooter = await fetch('Layout/Rodape/footer.html');
+        if (resFooter.ok) document.getElementById('footer-container').innerHTML = await resFooter.text();
+      } catch (err) {
+        console.error('Erro ao carregar layout:', err);
       }
-
-      const resFooter = await fetch('Layout/Rodape/footer.html');
-      if (resFooter.ok) document.getElementById('footer-container').innerHTML = await resFooter.text();
-    } catch (err) {
-      console.error('Erro ao carregar layout:', err);
     }
-  }
-
-  function handleLogout() {
-    localStorage.removeItem('usuarioLogado');
-    window.location.href = 'index.html';
-  }
 
     async function carregarUltimasImportacoes() {
       try {

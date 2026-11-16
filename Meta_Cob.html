@@ -60,34 +60,44 @@
 
   <script>
     async function carregarLayout() {
-    try {
-      const resHeader = await fetch('Layout/Cabecalho/header.html');
-      if (resHeader.ok) {
-        document.getElementById('header-container').innerHTML = await resHeader.text();
-        
-        // --- INSERE O PRIMEIRO NOME ASSIM QUE O HEADER É CARREGADO ---
-        const usuarioData = localStorage.getItem('usuarioLogado');
-        if (usuarioData) {
-          try {
-            const parsed = JSON.parse(usuarioData);
-            const nomeCompleto = parsed.usuario?.nome || parsed.nome || '';
-            if (nomeCompleto) {
-              const primeiroNome = nomeCompleto.trim().split(' ')[0];
-              const span = document.getElementById('headerFirstName');
-              if (span) span.innerText = primeiroNome;
+      try {
+        const resHeader = await fetch('Layout/Cabecalho/header.html');
+        if (resHeader.ok) {
+          document.getElementById('header-container').innerHTML = await resHeader.text();
+          
+          const usuarioData = localStorage.getItem('usuarioLogado');
+          if (usuarioData) {
+            try {
+              const parsed = JSON.parse(usuarioData);
+              const usuario = parsed.usuario || parsed;
+              
+              // 1. Preenche o primeiro nome
+              if (usuario && usuario.nome) {
+                const primeiroNome = usuario.nome.trim().split(' ')[0];
+                const span = document.getElementById('headerFirstName');
+                if (span) span.innerText = primeiroNome;
+              }
+
+              // 2. Oculta os menus de Importações e Cadastro se for Gerente ou Supervisor
+              const funcao = usuario?.funcao || '';
+              if (funcao === 'Gerente' || funcao === 'Supervisor') {
+                const menuImp = document.getElementById('menu-imp');
+                const menuCad = document.getElementById('menu-cad');
+                if (menuImp) menuImp.style.display = 'none';
+                if (menuCad) menuCad.style.display = 'none';
+              }
+            } catch (e) {
+              console.error('Erro ao ler usuário no header:', e);
             }
-          } catch (e) {
-            console.error('Erro ao ler usuário:', e);
           }
         }
-      }
 
-      const resFooter = await fetch('Layout/Rodape/footer.html');
-      if (resFooter.ok) document.getElementById('footer-container').innerHTML = await resFooter.text();
-    } catch (err) {
-      console.error('Erro ao carregar layout:', err);
+        const resFooter = await fetch('Layout/Rodape/footer.html');
+        if (resFooter.ok) document.getElementById('footer-container').innerHTML = await resFooter.text();
+      } catch (err) {
+        console.error('Erro ao carregar layout:', err);
+      }
     }
-  }
 
   function handleLogout() {
     localStorage.removeItem('usuarioLogado');

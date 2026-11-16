@@ -232,14 +232,25 @@
           if (usuarioData) {
             try {
               const parsed = JSON.parse(usuarioData);
-              const nomeCompleto = parsed.usuario?.nome || parsed.nome || '';
-              if (nomeCompleto) {
-                const primeiroNome = nomeCompleto.trim().split(' ')[0];
+              const usuario = parsed.usuario || parsed;
+              
+              // 1. Preenche o primeiro nome
+              if (usuario && usuario.nome) {
+                const primeiroNome = usuario.nome.trim().split(' ')[0];
                 const span = document.getElementById('headerFirstName');
                 if (span) span.innerText = primeiroNome;
               }
+
+              // 2. Oculta os menus de Importações e Cadastro se for Gerente ou Supervisor
+              const funcao = usuario?.funcao || '';
+              if (funcao === 'Gerente' || funcao === 'Supervisor') {
+                const menuImp = document.getElementById('menu-imp');
+                const menuCad = document.getElementById('menu-cad');
+                if (menuImp) menuImp.style.display = 'none';
+                if (menuCad) menuCad.style.display = 'none';
+              }
             } catch (e) {
-              console.error('Erro ao ler usuário:', e);
+              console.error('Erro ao ler usuário no header:', e);
             }
           }
         }
