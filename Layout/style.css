@@ -523,3 +523,11 @@ body {
   margin-top: 30px;
   border-top: 1px solid #e0e0e0;
 }
+
+/* ==========================================
+   Controle de Acesso Baseado em Perfil (RBAC)
+   ========================================== */
+body.user-gerente .admin-only,
+body.user-supervisor .admin-only {
+  display: none !important;
+}
